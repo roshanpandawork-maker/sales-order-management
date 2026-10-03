@@ -32,7 +32,7 @@ function messageText(){
     "G.R. No.: "+gr+"\n"+
     "Truck No.: "+truck+"\n"+
     "Bags: "+bags+"\n"+
-    "Weight: "+weight+" MT\n"+
+    "Weight: "+weight+" QTL\n"+
     "Rate: "+(rate?moneyp(rate):"")+"\n"+
     "Oil: "+(oil?oil+"%":"")+"\n"+
     "FFA: "+ffa+"\n"+
@@ -122,8 +122,8 @@ function draw(){
               <div class="field"><label>G.R. No.</label><input id="puGR" placeholder="GR-0001"></div>
               <div class="field"><label>Truck No.</label><input id="puTruck" placeholder="OD02AB1234"></div>
               <div class="field"><label>Bags</label><input id="puBags" type="number" min="0" step="1" placeholder="0"></div>
-              <div class="field"><label>Weight (MT)</label><input id="puWeight" type="number" min="0" step=".001" placeholder="0.000"></div>
-              <div class="field"><label>Rate (₹ / MT)</label><input id="puRate" type="number" min="0" step=".01" placeholder="0.00"></div>
+              <div class="field"><label>Weight (QTL)</label><input id="puWeight" type="number" min="0" step=".001" placeholder="0.000"></div>
+              <div class="field"><label>Rate (₹ / QTL)</label><input id="puRate" type="number" min="0" step=".01" placeholder="0.00"></div>
             </div>
           </div>
           <div class="formSection">
@@ -166,7 +166,7 @@ function draw(){
       tbl(["Supplier","WhatsApp / Mobile","Contact","GSTIN","Status",""],S.suppliers.map(x=>'<tr><td><b>'+escp(x.name)+'</b></td><td>'+escp(x.mobile||"")+'</td><td>'+escp(x.contact||"")+'</td><td>'+escp(x.gstin||"")+'</td><td><span class="pill '+(x.active===false?"cancel":"")+'">'+(x.active===false?"Inactive":"Active")+'</span></td><td><button class="secondary btnsm" data-editsupplier="'+escp(x.id)+'">Edit</button> <button class="danger btnsm" data-delsupplier="'+escp(x.id)+'">Delete</button></td></tr>'))+'</div>';
   }else{
     body+='<div class="panel"><div class="sectionHead"><div><h2>Purchase WhatsApp history</h2><span>Last 100 saved purchase messages</span></div></div>'+
-      tbl(["Date","Supplier","GR No.","Truck","Weight","Rate","Message",""],S.messages.map(x=>'<tr><td>'+escp(x.date)+'</td><td><b>'+escp(x.supplier_name||"")+'</b></td><td>'+escp(x.gr_no||"")+'</td><td>'+escp(x.truck_no||"")+'</td><td>'+escp(x.weight||"")+'</td><td>'+moneyp(x.rate)+'</td><td><button class="secondary btnsm" data-viewmsg="'+escp(x.id)+'">View</button></td><td><button class="danger btnsm" data-delmsg="'+escp(x.id)+'">Delete</button></td></tr>'))+'</div>';
+      tbl(["Date","Supplier","GR No.","Truck","Weight (QTL)","Rate / QTL","Message",""],S.messages.map(x=>'<tr><td>'+escp(x.date)+'</td><td><b>'+escp(x.supplier_name||"")+'</b></td><td>'+escp(x.gr_no||"")+'</td><td>'+escp(x.truck_no||"")+'</td><td>'+escp(x.weight||"")+'</td><td>'+moneyp(x.rate)+'</td><td><button class="secondary btnsm" data-viewmsg="'+escp(x.id)+'">View</button></td><td><button class="danger btnsm" data-delmsg="'+escp(x.id)+'">Delete</button></td></tr>'))+'</div>';
   }
   s.innerHTML=body;
   if(S.view==="entry"){
