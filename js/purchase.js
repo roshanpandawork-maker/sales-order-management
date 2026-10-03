@@ -179,6 +179,7 @@ function draw(){
   if(S.view==="entry"){
     ["puSupplier","puNumber","puManualNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
     $("puSupplier")?.addEventListener("change",()=>{updateSupplierNumbers();updatePreview()});
+    $("puNumber")?.addEventListener("change",updatePreview);
     updateSupplierNumbers();
     updatePreview();
   }
@@ -190,8 +191,6 @@ function updateSupplierNumbers(){
   if(numbersOf(s?.mobile||"").length===1) el.value=firstPhone(s.mobile);
 }
 function updatePreview(){
-  const master=selectedSupplier();
-  if(nameInput && !nameInput.value && master) nameInput.value=master.name;
   const t=messageText();
   if($("puPreview"))$("puPreview").value=t;
   const c=$("puCompany");if(c)localStorage.setItem("sd_purchase_company",c.value);
@@ -201,8 +200,8 @@ async function savePurchase(){
   const supplierName=$("puSupplier")?.value.trim();
   if(!supplierName)return alert("Enter a supplier name.");
   
-  const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
-  if(!selectedNumber)return alert("Add a supplier WhatsApp/mobile number first.");
+  const selectedNumber=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplier?.mobile||"");
+  if(!selectedNumber)return alert("Enter a supplier WhatsApp/mobile number first.");
   const text=messageText(),row={
     supplier_id:supplier?.id||null,supplier_name:supplierName,mobile:selectedNumber,
     date:$("puDate").value,gr_no:$("puGR").value.trim(),truck_no:$("puTruck").value.trim(),
@@ -222,8 +221,7 @@ function openWA(){
   const supplier=selectedSupplier();
   const supplierName=$("puSupplier")?.value.trim();
   if(!supplierName)return alert("Enter a supplier name.");
-  if(!supplier)return alert("Select a supplier first so WhatsApp number can be used.");
-  const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
+  const selectedNumber=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplier?.mobile||"");
   const p=phone(selectedNumber);
   if(p.length<12)return alert("Supplier does not have a valid WhatsApp/mobile number.");
   window.open("https://wa.me/"+p+"?text="+encodeURIComponent(currentText()),"_blank","noopener");
