@@ -6,11 +6,16 @@ const $=id=>document.getElementById(id);
 const S={suppliers:[],messages:[],loaded:false,view:"entry",err:""};
 const SUP="purchase_suppliers", MSG="purchase_messages";
 const escp=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function numbersOf(s){return String(s||"").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean)}
+function firstPhone(s){return numbersOf(s)[0]||""}
+function numberOptions(s){return numbersOf(s).map((n,i)=>'<option value="'+escp(n)+'">'+escp(n)+(i===0?" · Primary":"")+'</option>').join("")}
 const moneyp=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const todayp=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 
 function messageText(){
   const supplier=$("puSupplier")?.selectedOptions[0]?.textContent||"";
+  const supplierObj=S.suppliers.find(x=>x.id===($("puSupplier")?.value||""));
+  const supplierNo=$("puNumber")?.value||firstPhone(supplierObj?.mobile||"");
   const company=$("puCompany")?.value.trim()||"";
   const date=$("puDate")?.value||"";
   const gr=$("puGR")?.value.trim()||"";
@@ -22,7 +27,7 @@ function messageText(){
   const ffa=$("puFFA")?.value||"";
   const remarks=$("puRemarks")?.value.trim()||"";
   return "*PURCHASE DETAILS*\n\n"+
-    "Party Name: "+supplier+"\n"+
+    "Supplier No.: "+supplierNo+"\n"+
     "Date: "+date+"\n"+
     "G.R. No.: "+gr+"\n"+
     "Truck No.: "+truck+"\n"+
@@ -58,13 +63,13 @@ function buildSupplierModal(id){
   const e=S.suppliers.find(x=>x.id===id)||{};
   openModal(id?"Edit supplier":"Add supplier",
     fld("psName","Supplier name *",e.name)+
-    fld("psMobile","WhatsApp / mobile",e.mobile)+
+    '<div class="field"><label>WhatsApp numbers</label><textarea id="psMobile" rows="3" placeholder="One number per line\n9876543210\n9123456789">'+escp(String(e.mobile||"").split(/[,;]+/).join("\n"))+'</textarea><div class="small muted">Add more numbers on separate lines. The first number is the primary number.</div></div>'+
     fld("psContact","Contact person",e.contact)+
     fld("psGST","GSTIN",e.gstin)+
     fld("psAddress","Address",e.address)+
     '<div class="field"><label>Status</label><select id="psActive"><option value="1" '+(e.active===false?"":"selected")+'>Active</option><option value="0" '+(e.active===false?"selected":"")+'>Inactive</option></select></div>',
     async()=>{
-      const name=$("psName").value.trim(),mobile=$("psMobile").value.trim();
+      const name=$("psName").value.trim(),mobile=String($("psMobile").value||"").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean).join(",");
       if(!name)return alert("Supplier name is required."),false;
       const row={name,mobile,contact:$("psContact").value.trim(),gstin:$("psGST").value.trim().toUpperCase(),address:$("psAddress").value.trim(),active:$("psActive").value==="1"};
       if(id){
@@ -106,7 +111,7 @@ function draw(){
           <div class="formSection">
             <div class="sectionTitle">Supplier</div>
             <div class="grid two">
-              <div class="field"><label>Supplier *</label><select id="puSupplier">${supplierOpts()}</select></div>
+              <div class="field"><label>Supplier *</label><select id="puSupplier">${supplierOpts()}</select></div>\n              <div class="field"><label>Supplier number *</label><select id="puNumber"><option value="">Select number</option></select></div>
               <div class="field"><label>Company name</label><input id="puCompany" value="${escp(localStorage.getItem("sd_purchase_company")||"")}" placeholder="Your company name"></div>
             </div>
           </div>
@@ -165,10 +170,17 @@ function draw(){
   }
   s.innerHTML=body;
   if(S.view==="entry"){
-    ["puSupplier","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
-    $("puSupplier")?.addEventListener("change",updatePreview);
+    ["puSupplier","puNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
+    $("puSupplier")?.addEventListener("change",()=>{updateSupplierNumbers();updatePreview()});
+    updateSupplierNumbers();
     updatePreview();
   }
+}
+function updateSupplierNumbers(){
+  const s=S.suppliers.find(x=>x.id===($("puSupplier")?.value||""));
+  const el=$("puNumber"); if(!el)return;
+  el.innerHTML='<option value="">Select number</option>'+numberOptions(s?.mobile||"");
+  if(numbersOf(s?.mobile||"").length===1) el.value=firstPhone(s.mobile);
 }
 function updatePreview(){
   const t=messageText();
@@ -178,8 +190,10 @@ function updatePreview(){
 async function savePurchase(){
   const supplier=S.suppliers.find(x=>x.id===$("puSupplier").value);
   if(!supplier)return alert("Select a supplier.");
+  const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
+  if(!selectedNumber)return alert("Add a supplier WhatsApp/mobile number first.");
   const text=messageText(),row={
-    supplier_id:supplier.id,supplier_name:supplier.name,mobile:supplier.mobile||"",
+    supplier_id:supplier.id,supplier_name:supplier.name,mobile:selectedNumber,
     date:$("puDate").value,gr_no:$("puGR").value.trim(),truck_no:$("puTruck").value.trim(),
     bags:Number($("puBags").value||0),weight:Number($("puWeight").value||0),rate:Number($("puRate").value||0),
     oil:Number($("puOil").value||0),ffa:$("puFFA").value.trim(),remarks:$("puRemarks").value.trim(),
@@ -196,7 +210,8 @@ function currentText(){return $("puPreview")?.value||messageText()}
 function openWA(){
   const supplier=S.suppliers.find(x=>x.id===$("puSupplier")?.value);
   if(!supplier)return alert("Select a supplier.");
-  const p=phone(supplier.mobile);
+  const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
+  const p=phone(selectedNumber);
   if(p.length<12)return alert("Supplier does not have a valid WhatsApp/mobile number.");
   window.open("https://wa.me/"+p+"?text="+encodeURIComponent(currentText()),"_blank","noopener");
 }
