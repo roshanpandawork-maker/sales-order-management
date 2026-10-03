@@ -185,4 +185,4 @@ async function logout(){await supabaseClient.auth.signOut();location.reload()}
 function removeLine(el){el.closest('tr').remove();calcOrder()}
 $('loginForm').addEventListener('submit',doLogin);
 $('restoreFile').addEventListener('change',restore);
-
+$('googleBtn').addEventListener('click',()=>supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}}));

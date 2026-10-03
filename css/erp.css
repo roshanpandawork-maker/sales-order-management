@@ -1,0 +1,13 @@
+/* ERP layer: sidebar layout, print. Loaded after styles.css */
+header,.wrap{margin-left:230px}.wrap{max-width:none}
+nav.tabs{position:fixed;left:0;top:0;bottom:0;width:230px;flex-direction:column;flex-wrap:nowrap;margin:0;border-radius:0;background:var(--navy);border:0;padding:84px 10px 10px;overflow:auto;z-index:30;box-shadow:none}
+nav.tabs .tab{color:#c5d4e3;text-align:left;width:100%;padding:11px 14px}
+nav.tabs .tab:hover{background:#ffffff14;color:#fff}
+nav.tabs .tab.active{background:var(--blue);color:#fff;border-color:transparent;box-shadow:none}
+.nav-sep{color:#7f93aa;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:14px 14px 4px}
+.pill.warn{background:#fff7e6;color:var(--gold)}
+@media(max-width:900px){header,.wrap{margin-left:0}
+nav.tabs{position:static;width:auto;flex-direction:row;padding:6px;background:#e9eef6;border:1px solid #e0e7f0;border-radius:13px;margin:0 16px 16px;overflow-x:auto}
+nav.tabs .tab{width:auto;color:#53647a;white-space:nowrap}nav.tabs .tab:hover{background:#fff}.nav-sep{display:none}}
+#printArea{display:none}
+@media print{body>*:not(#printArea){display:none!important}#printArea{display:block;padding:24px;font:14px Arial}#printArea table{min-width:0}}
