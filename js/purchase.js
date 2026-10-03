@@ -177,7 +177,7 @@ function draw(){
   }
   s.innerHTML=body;
   if(S.view==="entry"){
-    ["puSupplier","puSupplierName","puNumber","puManualNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
+    ["puSupplier","puNumber","puManualNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
     $("puSupplier")?.addEventListener("change",()=>{updateSupplierNumbers();updatePreview()});
     updateSupplierNumbers();
     updatePreview();
