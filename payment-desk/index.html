@@ -96,17 +96,28 @@ const money=v=>"₹"+Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 async function allowed(){
-  const {data:{user}}=await sb.auth.getUser();
-  if(!user)return null;
+  const {data:{user},error:authError}=await sb.auth.getUser();
+  if(authError) throw new Error("Authentication check failed: "+authError.message);
+  if(!user) return {ok:false,reason:"No active Supabase session. Please sign in again."};
   const {data,error}=await sb.from("payment_users").select("id,role,active").eq("user_id",user.id).maybeSingle();
-  if(error||!data||data.active===false)return null;
-  return user;
+  if(error) throw new Error("Payment Desk access check failed: "+error.message);
+  if(!data) return {ok:false,reason:"This account is authenticated but is not authorized for Payment Desk."};
+  if(data.active===false) return {ok:false,reason:"Payment Desk access is disabled for this account."};
+  return {ok:true,user};
 }
 async function boot(){
-  const user=await allowed();
-  if(!user){$("login").style.display="grid";$("app").style.display="none";return}
-  $("login").style.display="none";$("app").style.display="block";$("userEmail").textContent=user.email||"";
-  await loadAll();
+  try{
+    const access=await allowed();
+    if(!access.ok){$("login").style.display="grid";$("app").style.display="none";$("loginError").textContent=access.reason;return false}
+    const user=access.user;
+    $("login").style.display="none";$("app").style.display="block";$("userEmail").textContent=user.email||"";
+    await loadAll();
+    return true;
+  }catch(err){
+    console.error("Payment Desk boot error:",err);
+    $("login").style.display="grid";$("app").style.display="none";$("loginError").textContent=err?.message||"Payment Desk could not start.";
+    return false;
+  }
 }
 async function loadAll(){
   const [p,i,pay,f]=await Promise.all([
@@ -176,7 +187,7 @@ $("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").clas
 function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");document.querySelectorAll(".navbtn").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
 document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>show(b.dataset.view));
 $("logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
-$("loginForm").onsubmit=async e=>{e.preventDefault();$("loginError").textContent="";const {error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){$("loginError").textContent=error.message;return}await boot()};
+$("loginForm").onsubmit=async e=>{e.preventDefault();$("loginError").textContent="Signing in…";const {data,error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){$("loginError").textContent=error.message;return}if(!data?.session){$("loginError").textContent="Login succeeded but no session was created. Please try again.";return}await boot()};
 $("addParty").onclick=()=>openModal("Add Party",'<div class="grid"><div class="field"><label>Party name *</label><input id="mName"></div><div class="field"><label>Contact person</label><input id="mContact"></div><div class="field"><label>Phone</label><input id="mPhone"></div><div class="field"><label>WhatsApp</label><input id="mWhatsapp"></div></div><div class="actions"><button class="primary" id="modalSave">Save Party</button></div>',async()=>{const {error}=await sb.from("payment_parties").insert({name:$("mName").value.trim(),contact:$("mContact").value.trim(),phone:$("mPhone").value.trim(),whatsapp:$("mWhatsapp").value.trim()});if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()});
 $("addInvoice").onclick=()=>openModal("Add Invoice",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions()+'</select></div><div class="field"><label>Invoice No. *</label><input id="mInv"></div><div class="field"><label>Invoice Date</label><input id="mInvDate" type="date" value="'+today()+'"></div><div class="field"><label>Amount</label><input id="mAmount" type="number" min="0" step=".01"></div><div class="field"><label>Due Date</label><input id="mDue" type="date"></div></div><div class="actions"><button class="primary" id="modalSave">Save Invoice</button></div>',async()=>{const row={party_id:$("mParty").value,invoice_no:$("mInv").value.trim(),invoice_date:$("mInvDate").value,amount:Number($("mAmount").value||0),due_date:$("mDue").value,received_amount:0};if(!row.party_id||!row.invoice_no||!row.amount){alert("Party, invoice number and amount are required.");return}const {error}=await sb.from("payment_invoices").insert(row);if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()});
 function followModal(pid=""){openModal("Record Follow-up",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions(pid)+'</select></div><div class="field"><label>Follow-up Date</label><input id="mDate" type="date" value="'+today()+'"></div><div class="field"><label>Mode</label><select id="mMode"><option>Call</option><option>WhatsApp</option><option>Visit</option><option>Other</option></select></div><div class="field"><label>Person Contacted</label><input id="mPerson"></div><div class="field"><label>Promise Date</label><input id="mPromiseDate" type="date"></div><div class="field"><label>Promise Amount</label><input id="mPromiseAmount" type="number" min="0" step=".01"></div><div class="field"><label>Next Follow-up</label><input id="mNext" type="date"></div></div><div class="field"><label>Discussion</label><textarea id="mDiscussion" placeholder="What did the customer say?"></textarea></div><div class="actions"><button class="primary" id="modalSave">Save Follow-up</button></div>',async()=>{const row={party_id:$("mParty").value,followup_date:$("mDate").value,mode:$("mMode").value,person_contacted:$("mPerson").value.trim(),discussion:$("mDiscussion").value.trim(),promise_date:$("mPromiseDate").value||null,promise_amount:Number($("mPromiseAmount").value||0),next_followup:$("mNext").value||null};if(!row.party_id){alert("Select a party.");return}const {error}=await sb.from("payment_followups").insert(row);if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()})}
