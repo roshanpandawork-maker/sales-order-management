@@ -285,7 +285,7 @@ function build(){
   if($('[data-tab=payroll]'))return;
   const b=document.createElement('button');
   b.className='tab';b.dataset.tab='payroll';b.innerHTML='<span class="ic">👷</span>Payroll';
-  document.querySelector('.nav-group[data-group=hr]')?.appendChild(b) || document.querySelector('[data-tab=reports]').after(b);
+  (document.querySelector('.nav-group[data-group=hr] .nav-items') || document.querySelector('.nav-group[data-group=hr]'))?.appendChild(b) || document.querySelector('[data-tab=reports]').after(b);
   b.onclick=()=>showTab('payroll');
   const s=document.createElement('section');s.id='payroll';s.className='hidden';
   document.querySelector('.foot').before(s);
