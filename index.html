@@ -113,5 +113,40 @@
 <script src="js/ui.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/purchase.js"></script>
-<script src="js/payroll.js"></script>
+<script src="js/payroll.js"></script><script>
+(function(){
+  function bindSidebar(){
+    var nav=document.querySelector('.erpSidebarNav');
+    if(!nav) return;
+    nav.querySelectorAll('.nav-group[data-group]').forEach(function(group){
+      var title=group.querySelector(':scope > .nav-title');
+      var items=group.querySelector(':scope > .nav-items');
+      if(!title||!items) return;
+      if(title.dataset.bound==='1') return;
+      title.dataset.bound='1';
+      title.addEventListener('pointerdown',function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      },true);
+      title.addEventListener('click',function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var closed=!group.classList.contains('is-collapsed');
+        group.classList.toggle('is-collapsed',closed);
+        title.setAttribute('aria-expanded',closed?'false':'true');
+        items.setAttribute('aria-hidden',closed?'true':'false');
+        localStorage.setItem('salesdesk_sidebar_'+group.dataset.group,closed?'closed':'open');
+      },true);
+      var saved=localStorage.getItem('salesdesk_sidebar_'+group.dataset.group);
+      var closed=saved==='closed';
+      group.classList.toggle('is-collapsed',closed);
+      title.setAttribute('aria-expanded',closed?'false':'true');
+      items.setAttribute('aria-hidden',closed?'true':'false');
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindSidebar);
+  else bindSidebar();
+  window.addEventListener('load',bindSidebar);
+})();
+</script>
 </body></html>
