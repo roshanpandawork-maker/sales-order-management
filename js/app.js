@@ -1,6 +1,6 @@
 const SD_CFG=window.SALESDESK_CONFIG;
 const supabaseClient=window.supabase.createClient(SD_CFG.SUPABASE_URL,SD_CFG.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-const $=id=>document.getElementById(id),today=new Date().toISOString().slice(0,10);
+const $=id=>document.getElementById(id),today=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 let db={parties:[],products:[],orders:[],sales:[]};
 const TABLES=['parties','products','orders','sales'],PK={parties:'code',products:'code',orders:'no',sales:'id'};
 let prev={},chain=Promise.resolve();
