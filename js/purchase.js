@@ -15,7 +15,7 @@ const todayp=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISO
 function messageText(){
   const supplier=$("puSupplierName")?.value.trim()||$("puSupplier")?.selectedOptions[0]?.textContent||"";
   const supplierObj=S.suppliers.find(x=>x.id===($("puSupplier")?.value||""));
-  const supplierNo=$("puNumber")?.value||firstPhone(supplierObj?.mobile||"");
+  const supplierNo=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplierObj?.mobile||"");
   const company=$("puCompany")?.value.trim()||"";
   const date=$("puDate")?.value||"";
   const gr=$("puGR")?.value.trim()||"";
@@ -112,7 +112,7 @@ function draw(){
           <div class="formSection">
             <div class="sectionTitle">Supplier</div>
             <div class="grid two">
-              <div class="field"><label>Supplier *</label><select id="puSupplier">${supplierOpts()}</select></div>\n              <div class="field"><label>Supplier number *</label><select id="puNumber"><option value="">Select number</option></select></div>
+              <div class="field"><label>Supplier from master</label><select id="puSupplier">${supplierOpts()}</select><div class="small muted">Select an existing supplier, or type a name below.</div></div>\n              <div class="field"><label>Supplier name for message *</label><input id="puSupplierName" placeholder="Type or paste supplier name"></div>\n              <div class="field"><label>Supplier number</label><select id="puNumber"><option value="">Select saved number</option></select><div class="small muted">If needed, type a number below.</div></div>\n              <div class="field"><label>WhatsApp number for this message</label><input id="puManualNumber" inputmode="tel" placeholder="9876543210"></div>
               <div class="field"><label>Company name</label><input id="puCompany" value="${escp(localStorage.getItem("sd_purchase_company")||"")}" placeholder="Your company name"></div>
             </div>
           </div>
@@ -171,7 +171,7 @@ function draw(){
   }
   s.innerHTML=body;
   if(S.view==="entry"){
-    ["puSupplier","puSupplierName","puNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
+    ["puSupplier","puSupplierName","puNumber","puManualNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
     $("puSupplier")?.addEventListener("change",()=>{updateSupplierNumbers();updatePreview()});
     updateSupplierNumbers();
     updatePreview();
@@ -200,7 +200,7 @@ async function savePurchase(){
   const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
   if(!selectedNumber)return alert("Add a supplier WhatsApp/mobile number first.");
   const text=messageText(),row={
-    supplier_id:supplier.id,supplier_name:supplier.name,mobile:selectedNumber,
+    supplier_id:supplier?.id||null,supplier_name:supplierName,mobile:selectedNumber,
     date:$("puDate").value,gr_no:$("puGR").value.trim(),truck_no:$("puTruck").value.trim(),
     bags:Number($("puBags").value||0),weight:Number($("puWeight").value||0),rate:Number($("puRate").value||0),
     oil:Number($("puOil").value||0),ffa:$("puFFA").value.trim(),remarks:$("puRemarks").value.trim(),
