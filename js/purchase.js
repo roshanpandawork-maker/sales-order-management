@@ -13,7 +13,7 @@ const moneyp=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits
 const todayp=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 
 function messageText(){
-  const supplier=$("puSupplierName")?.value.trim()||$("puSupplier")?.selectedOptions[0]?.textContent||"";
+  const supplier=$("puSupplier")?.value.trim()||"";
   const supplierObj=selectedSupplier();
   const supplierNo=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplierObj?.mobile||"");
   const company=$("puCompany")?.value.trim()||"";
@@ -46,7 +46,13 @@ function phone(s){
   return x;
 }
 function supplierOpts(){
-  return '<option value="">Select supplier</option>'+S.suppliers.filter(x=>x.active!==false).sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(x=>'<option value="'+escp(x.id)+'">'+escp(x.name)+" · "+escp(x.mobile||"No mobile")+"</option>").join("");
+  return S.suppliers.filter(x=>x.active!==false)
+    .sort((a,b)=>String(a.name).localeCompare(String(b.name)))
+    .map(x=>'<option value="'+escp(x.name)+'"></option>').join("");
+}
+function selectedSupplier(){
+  const v=($("puSupplier")?.value||"").trim();
+  return S.suppliers.find(x=>String(x.name||"").toLowerCase()===v.toLowerCase());
 }
 function tbl(h,rows){
   return '<div class="tablewrap"><table><thead><tr>'+h.map(x=>"<th>"+x+"</th>").join("")+"</tr></thead><tbody>"+(rows.join("")||'<tr><td class="empty" colspan="'+h.length+'">No records</td></tr>')+"</tbody></table></div>";
@@ -112,7 +118,7 @@ function draw(){
           <div class="formSection">
             <div class="sectionTitle">Supplier</div>
             <div class="grid two">
-              <div class="field"><label>Supplier from master</label><input id="puSupplier" list="purchaseSupplierList" autocomplete="off" placeholder="Select or type supplier name"><datalist id="purchaseSupplierList">${supplierOpts()}</datalist><div class="small muted">Select an existing supplier or type/paste a new supplier name.</div></div>\n              <div class="field"><label>Supplier name for message *</label><input id="puSupplierName" placeholder="Type or paste supplier name"></div>\n              <div class="field"><label>Supplier number</label><select id="puNumber"><option value="">Select saved number</option></select><div class="small muted">If needed, type a number below.</div></div>\n              <div class="field"><label>WhatsApp number for this message</label><input id="puManualNumber" inputmode="tel" placeholder="9876543210"></div>
+              <div class="field"><label>Supplier *</label><input id="puSupplier" list="purchaseSupplierList" autocomplete="off" placeholder="Select or type supplier name"><datalist id="purchaseSupplierList">${supplierOpts()}</datalist><div class="small muted">Select from saved suppliers or type/paste a supplier name.</div></div>\n              <div class="field"><label>Supplier number</label><select id="puNumber"><option value="">Select saved number</option></select><div class="small muted">If needed, type a number below.</div></div>\n              <div class="field"><label>WhatsApp number for this message</label><input id="puManualNumber" inputmode="tel" placeholder="9876543210"></div>
               <div class="field"><label>Company name</label><input id="puCompany" value="${escp(localStorage.getItem("sd_purchase_company")||"")}" placeholder="Your company name"></div>
             </div>
           </div>
@@ -185,7 +191,6 @@ function updateSupplierNumbers(){
 }
 function updatePreview(){
   const master=selectedSupplier();
-  const nameInput=$("puSupplierName");
   if(nameInput && !nameInput.value && master) nameInput.value=master.name;
   const t=messageText();
   if($("puPreview"))$("puPreview").value=t;
@@ -193,9 +198,9 @@ function updatePreview(){
 }
 async function savePurchase(){
   const supplier=selectedSupplier();
-  const supplierName=$("puSupplierName")?.value.trim();
-  if(!supplierName)return alert("Enter or select a supplier name.");
-  if(!supplier)return alert("Select a supplier from the list when saving to a master supplier.");
+  const supplierName=$("puSupplier")?.value.trim();
+  if(!supplierName)return alert("Enter a supplier name.");
+  
   const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
   if(!selectedNumber)return alert("Add a supplier WhatsApp/mobile number first.");
   const text=messageText(),row={
@@ -215,8 +220,8 @@ async function savePurchase(){
 function currentText(){return $("puPreview")?.value||messageText()}
 function openWA(){
   const supplier=selectedSupplier();
-  const supplierName=$("puSupplierName")?.value.trim();
-  if(!supplierName)return alert("Enter or select a supplier name.");
+  const supplierName=$("puSupplier")?.value.trim();
+  if(!supplierName)return alert("Enter a supplier name.");
   if(!supplier)return alert("Select a supplier first so WhatsApp number can be used.");
   const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
   const p=phone(selectedNumber);
