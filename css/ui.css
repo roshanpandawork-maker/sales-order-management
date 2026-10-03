@@ -1,0 +1,32 @@
+/* UI upgrade: toasts, dark mode, charts, sortable sticky tables */
+#toasts{position:fixed;right:16px;bottom:16px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:340px}
+.toast{padding:12px 16px;border-radius:11px;color:#fff;font-size:13px;box-shadow:0 10px 30px #0004;animation:tin .22s ease;border-left:5px solid #0003}
+.toast.ok{background:#16834a}.toast.bad{background:#c2413b}
+@keyframes tin{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.ic{display:inline-block;width:24px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.bar{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:center;margin:10px 0;font-size:12px}
+.bar u{display:block;height:10px;border-radius:6px;background:#e9eef6;text-decoration:none;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--blue),#7c9cf8);transition:width .5s}
+.bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar b{font-variant-numeric:tabular-nums}
+.tablewrap{max-height:70vh}
+.tablewrap th{position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
+th[data-d=a]:after{content:" ▲"}th[data-d=d]:after{content:" ▼"}
+tbody tr:nth-child(even) td{background:#fafbfe}
+#themeBtn{padding:9px 12px}
+[data-theme=dark]{--bg:#0e1621;--ink:#e4ebf3;--muted:#8fa1b5;--line:#243447;--surface:#162231;--shadow:none;color-scheme:dark}
+[data-theme=dark] :is(.tablewrap,.lines,.totalbar,.emptybox,.partycard,.loginbox,.mbox,input,select,textarea){background:#0f1a27;border-color:#243447;color:#e4ebf3}
+[data-theme=dark] input[readonly]{background:#172433}
+[data-theme=dark] th{background:#1b2b3d;color:#9fb2c8}
+[data-theme=dark] td,[data-theme=dark] tbody td{color:#c9d6e4;border-color:#243447}
+[data-theme=dark] tbody tr:nth-child(even) td{background:#122030}
+[data-theme=dark] tbody tr:hover td{background:#1b2b3d}
+[data-theme=dark] :is(.panel h2,.metric strong,.partygrid b,.totalbar strong,.loginbox h2,.linehead strong,.partycard h3){color:#e4ebf3}
+[data-theme=dark] .partygrid div{background:#1b2b3d;border-color:#243447}
+[data-theme=dark] .notice{background:#14283f;border-color:#1f3b5c;color:#9cc1f0}
+[data-theme=dark] .secondary{background:#1f2f42;border-color:#2c4058;color:#d3deea}
+[data-theme=dark] .tag{background:#20324a;color:#a9bbd0}
+[data-theme=dark] .bar u{background:#243447}
+[data-theme=dark] .tab:hover{background:#ffffff14}
+@media(max-width:900px){[data-theme=dark] nav.tabs{background:#162231;border-color:#243447}[data-theme=dark] nav.tabs .tab{color:#c5d4e3}}
