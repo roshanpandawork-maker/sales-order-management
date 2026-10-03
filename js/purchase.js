@@ -14,7 +14,7 @@ const todayp=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISO
 
 function messageText(){
   const supplier=$("puSupplierName")?.value.trim()||$("puSupplier")?.selectedOptions[0]?.textContent||"";
-  const supplierObj=S.suppliers.find(x=>x.id===($("puSupplier")?.value||""));
+  const supplierObj=selectedSupplier();
   const supplierNo=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplierObj?.mobile||"");
   const company=$("puCompany")?.value.trim()||"";
   const date=$("puDate")?.value||"";
@@ -112,7 +112,7 @@ function draw(){
           <div class="formSection">
             <div class="sectionTitle">Supplier</div>
             <div class="grid two">
-              <div class="field"><label>Supplier from master</label><select id="puSupplier">${supplierOpts()}</select><div class="small muted">Select an existing supplier, or type a name below.</div></div>\n              <div class="field"><label>Supplier name for message *</label><input id="puSupplierName" placeholder="Type or paste supplier name"></div>\n              <div class="field"><label>Supplier number</label><select id="puNumber"><option value="">Select saved number</option></select><div class="small muted">If needed, type a number below.</div></div>\n              <div class="field"><label>WhatsApp number for this message</label><input id="puManualNumber" inputmode="tel" placeholder="9876543210"></div>
+              <div class="field"><label>Supplier from master</label><input id="puSupplier" list="purchaseSupplierList" autocomplete="off" placeholder="Select or type supplier name"><datalist id="purchaseSupplierList">${supplierOpts()}</datalist><div class="small muted">Select an existing supplier or type/paste a new supplier name.</div></div>\n              <div class="field"><label>Supplier name for message *</label><input id="puSupplierName" placeholder="Type or paste supplier name"></div>\n              <div class="field"><label>Supplier number</label><select id="puNumber"><option value="">Select saved number</option></select><div class="small muted">If needed, type a number below.</div></div>\n              <div class="field"><label>WhatsApp number for this message</label><input id="puManualNumber" inputmode="tel" placeholder="9876543210"></div>
               <div class="field"><label>Company name</label><input id="puCompany" value="${escp(localStorage.getItem("sd_purchase_company")||"")}" placeholder="Your company name"></div>
             </div>
           </div>
@@ -178,14 +178,13 @@ function draw(){
   }
 }
 function updateSupplierNumbers(){
-  const s=S.suppliers.find(x=>x.id===($("puSupplier")?.value||""));
+  const s=selectedSupplier();
   const el=$("puNumber"); if(!el)return;
   el.innerHTML='<option value="">Select number</option>'+numberOptions(s?.mobile||"");
   if(numbersOf(s?.mobile||"").length===1) el.value=firstPhone(s.mobile);
 }
 function updatePreview(){
-  const selected=$("puSupplier")?.value||"";
-  const master=S.suppliers.find(x=>x.id===selected);
+  const master=selectedSupplier();
   const nameInput=$("puSupplierName");
   if(nameInput && !nameInput.value && master) nameInput.value=master.name;
   const t=messageText();
@@ -193,7 +192,7 @@ function updatePreview(){
   const c=$("puCompany");if(c)localStorage.setItem("sd_purchase_company",c.value);
 }
 async function savePurchase(){
-  const supplier=S.suppliers.find(x=>x.id===$("puSupplier").value);
+  const supplier=selectedSupplier();
   const supplierName=$("puSupplierName")?.value.trim();
   if(!supplierName)return alert("Enter or select a supplier name.");
   if(!supplier)return alert("Select a supplier from the list when saving to a master supplier.");
@@ -215,7 +214,7 @@ async function savePurchase(){
 }
 function currentText(){return $("puPreview")?.value||messageText()}
 function openWA(){
-  const supplier=S.suppliers.find(x=>x.id===$("puSupplier")?.value);
+  const supplier=selectedSupplier();
   const supplierName=$("puSupplierName")?.value.trim();
   if(!supplierName)return alert("Enter or select a supplier name.");
   if(!supplier)return alert("Select a supplier first so WhatsApp number can be used.");
