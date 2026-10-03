@@ -13,7 +13,7 @@ const moneyp=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits
 const todayp=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 
 function messageText(){
-  const supplier=$("puSupplier")?.selectedOptions[0]?.textContent||"";
+  const supplier=$("puSupplierName")?.value.trim()||$("puSupplier")?.selectedOptions[0]?.textContent||"";
   const supplierObj=S.suppliers.find(x=>x.id===($("puSupplier")?.value||""));
   const supplierNo=$("puNumber")?.value||firstPhone(supplierObj?.mobile||"");
   const company=$("puCompany")?.value.trim()||"";
@@ -27,6 +27,7 @@ function messageText(){
   const ffa=$("puFFA")?.value||"";
   const remarks=$("puRemarks")?.value.trim()||"";
   return "*PURCHASE DETAILS*\n\n"+
+    "Supplier Name: "+supplier+"\n"+
     "Supplier No.: "+supplierNo+"\n"+
     "Date: "+date+"\n"+
     "G.R. No.: "+gr+"\n"+
@@ -170,7 +171,7 @@ function draw(){
   }
   s.innerHTML=body;
   if(S.view==="entry"){
-    ["puSupplier","puNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
+    ["puSupplier","puSupplierName","puNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
     $("puSupplier")?.addEventListener("change",()=>{updateSupplierNumbers();updatePreview()});
     updateSupplierNumbers();
     updatePreview();
@@ -183,13 +184,19 @@ function updateSupplierNumbers(){
   if(numbersOf(s?.mobile||"").length===1) el.value=firstPhone(s.mobile);
 }
 function updatePreview(){
+  const selected=$("puSupplier")?.value||"";
+  const master=S.suppliers.find(x=>x.id===selected);
+  const nameInput=$("puSupplierName");
+  if(nameInput && !nameInput.value && master) nameInput.value=master.name;
   const t=messageText();
   if($("puPreview"))$("puPreview").value=t;
   const c=$("puCompany");if(c)localStorage.setItem("sd_purchase_company",c.value);
 }
 async function savePurchase(){
   const supplier=S.suppliers.find(x=>x.id===$("puSupplier").value);
-  if(!supplier)return alert("Select a supplier.");
+  const supplierName=$("puSupplierName")?.value.trim();
+  if(!supplierName)return alert("Enter or select a supplier name.");
+  if(!supplier)return alert("Select a supplier from the list when saving to a master supplier.");
   const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
   if(!selectedNumber)return alert("Add a supplier WhatsApp/mobile number first.");
   const text=messageText(),row={
@@ -209,7 +216,9 @@ async function savePurchase(){
 function currentText(){return $("puPreview")?.value||messageText()}
 function openWA(){
   const supplier=S.suppliers.find(x=>x.id===$("puSupplier")?.value);
-  if(!supplier)return alert("Select a supplier.");
+  const supplierName=$("puSupplierName")?.value.trim();
+  if(!supplierName)return alert("Enter or select a supplier name.");
+  if(!supplier)return alert("Select a supplier first so WhatsApp number can be used.");
   const selectedNumber=$("puNumber")?.value||firstPhone(supplier.mobile);
   const p=phone(selectedNumber);
   if(p.length<12)return alert("Supplier does not have a valid WhatsApp/mobile number.");
