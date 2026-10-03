@@ -63,4 +63,5 @@ document.addEventListener('click',async e=>{
     a.innerHTML=`<h2>Tax Invoice ${esc(i.no)}</h2><p>Date: ${esc(i.date)} · SO: ${esc(i.so)}<br>Party: <b>${esc(i.party)}</b></p>`+tbl(['Product','Qty','Rate','Value'],i.rows.map(s=>row([esc(pn(s.productCode)),fmt(s.qty),money(s.rate),money(s.qty*s.rate)])))+`<p>Amount ${money(i.amt)} · GST @${E.gst}% ${money(i.gst)} · <b>Total ${money(i.total)}</b></p>`;window.print()}
   if(d&&confirm('Delete this payment? (admin only)')){const {error}=await supabaseClient.from('payments').delete().eq('id',d.dataset.delpay);if(error)return alert(error.message);await reload()}
 });
+window.ERP={E,invoices,stock};
 })();
