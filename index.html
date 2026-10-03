@@ -10,21 +10,81 @@
 <div class="login" id="loginBox"><form class="loginbox" id="loginForm"><h2>SalesDesk</h2><div class="muted small">Sign in to continue</div><div class="field"><label>Username</label><input id="loginEmail" type="text" required autocomplete="username" autocapitalize="none"></div><div class="field"><label>Password</label><input id="loginPass" type="password" required autocomplete="current-password"></div><button class="primary">Sign in</button><button type="button" class="secondary" id="googleBtn">Sign in with Google</button><div class="lmsg" id="loginMsg"></div></form></div>
 <header><div class="brand"><div class="logo">SD</div><div><h1>SalesDesk</h1><p>Sales orders · Multi-item dispatch · Party balances</p></div></div><div class="toolbar"><span class="tag" id="syncTag" style="background:#ffffff20;color:white">Connecting…</span><button class="secondary" data-act="exportCSV">Export CSV</button><button class="secondary" data-act="logout">Log out</button><button class="secondary" data-act="backup">Backup JSON</button><label class="secondary" style="margin:0;cursor:pointer">Import backup<input type="file" accept=".json,application/json" id="restoreFile" style="display:none"></label></div></header>
 <div class="wrap"><div class="notice">Data is stored in a protected cloud database. Only authorised users can view or change it. Export a backup regularly.</div>
-<nav class="tabs erpSidebarNav"><div class="nav-group nav-overview"><div class="nav-title">WORKSPACE</div><div class="nav-items"><button class="tab active" data-tab="dashboard"><span class="navIcon">⌂</span><span>Overview</span></button></div></div><div class="nav-group" data-group="sales"><div class="nav-title">SALES</div><button class="tab" data-tab="orders"><span class="navIcon">▣</span><span>Sales Orders</span></button><button class="tab" data-tab="sales"><span class="navIcon">↗</span><span>Sales / Dispatch</span></button><button class="tab" data-tab="parties"><span class="navIcon">♙</span><span>Party Master</span></button><button class="tab" data-tab="products"><span class="navIcon">◈</span><span>Products & Prices</span></button><button class="tab" data-tab="balances"><span class="navIcon">₹</span><span>Party Balances</span></button></div><div class="nav-group" data-group="purchase"><div class="nav-title">PURCHASE</div><div class="nav-items"><button class="tab" data-tab="purchase"><span class="navIcon">⇩</span><span>Purchase WhatsApp</span></button></div></div><div class="nav-group" data-group="operations"><div class="nav-title">OPERATIONS</div><button class="tab" data-tab="inventory"><span class="navIcon">▤</span><span>Inventory</span></button></div><div class="nav-group" data-group="finance"><div class="nav-title">FINANCE</div><div class="nav-items"><button class="tab" data-tab="invoices"><span class="navIcon">▤</span><span>Invoices (GST)</span></button><button class="tab" data-tab="payments"><span class="navIcon">●</span><span>Payments</span></button><button class="tab" data-tab="reports"><span class="navIcon">▥</span><span>Reports</span></button></div></div><div class="nav-group" data-group="hr"><div class="nav-title">HR & PAYROLL</div></div></nav><style>
-.erpSidebarNav{display:flex!important;flex-direction:column!important;gap:6px!important}
-.nav-group{padding:0 4px 6px;border-bottom:1px solid rgba(255,255,255,.08)}
+<nav class="tabs erpSidebarNav">
+  <div class="nav-group nav-overview">
+    <button class="nav-title nav-title-static" type="button"><span>WORKSPACE</span></button>
+    <div class="nav-items"><button class="tab active" data-tab="dashboard"><span class="navIcon">⌂</span><span>Overview</span></button></div>
+  </div>
+  <div class="nav-group" data-group="sales">
+    <button class="nav-title" type="button" aria-expanded="true"><span>SALES</span><span class="nav-chevron">⌄</span></button>
+    <div class="nav-items">
+      <button class="tab" data-tab="orders"><span class="navIcon">▣</span><span>Sales Orders</span></button>
+      <button class="tab" data-tab="sales"><span class="navIcon">↗</span><span>Sales / Dispatch</span></button>
+      <button class="tab" data-tab="parties"><span class="navIcon">♙</span><span>Party Master</span></button>
+      <button class="tab" data-tab="products"><span class="navIcon">◈</span><span>Products &amp; Prices</span></button>
+      <button class="tab" data-tab="balances"><span class="navIcon">₹</span><span>Party Balances</span></button>
+    </div>
+  </div>
+  <div class="nav-group" data-group="purchase">
+    <button class="nav-title" type="button" aria-expanded="true"><span>PURCHASE</span><span class="nav-chevron">⌄</span></button>
+    <div class="nav-items"><button class="tab" data-tab="purchase"><span class="navIcon">⇩</span><span>Purchase WhatsApp</span></button></div>
+  </div>
+  <div class="nav-group" data-group="operations">
+    <button class="nav-title" type="button" aria-expanded="true"><span>OPERATIONS</span><span class="nav-chevron">⌄</span></button>
+    <div class="nav-items"><button class="tab" data-tab="inventory"><span class="navIcon">▤</span><span>Inventory</span></button></div>
+  </div>
+  <div class="nav-group" data-group="finance">
+    <button class="nav-title" type="button" aria-expanded="true"><span>FINANCE</span><span class="nav-chevron">⌄</span></button>
+    <div class="nav-items">
+      <button class="tab" data-tab="invoices"><span class="navIcon">▤</span><span>Invoices (GST)</span></button>
+      <button class="tab" data-tab="payments"><span class="navIcon">●</span><span>Payments</span></button>
+      <button class="tab" data-tab="reports"><span class="navIcon">▥</span><span>Reports</span></button>
+    </div>
+  </div>
+  <div class="nav-group" data-group="hr">
+    <button class="nav-title" type="button" aria-expanded="true"><span>HR &amp; PAYROLL</span><span class="nav-chevron">⌄</span></button>
+    <div class="nav-items"></div>
+  </div>
+</nav><script>
+(function(){
+  function initSidebar(){
+    const nav=document.querySelector('.erpSidebarNav');
+    if(!nav||nav.dataset.ready)return;
+    nav.dataset.ready='1';
+    nav.querySelectorAll('.nav-group[data-group]').forEach(group=>{
+      const title=group.querySelector('.nav-title');
+      if(!title)return;
+      const key='salesdesk_sidebar_'+group.dataset.group;
+      const saved=localStorage.getItem(key);
+      if(saved==='closed'){group.classList.add('is-collapsed');title.setAttribute('aria-expanded','false');}
+      title.addEventListener('click',function(ev){
+        ev.preventDefault();ev.stopPropagation();
+        const closed=group.classList.toggle('is-collapsed');
+        title.setAttribute('aria-expanded',String(!closed));
+        localStorage.setItem(key,closed?'closed':'open');
+      });
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initSidebar);else initSidebar();
+  setTimeout(initSidebar,100);
+})();
+</script><style>
+.erpSidebarNav{display:flex!important;flex-direction:column!important;gap:3px!important;padding:4px 8px!important}
+.nav-group{border-bottom:1px solid rgba(255,255,255,.07);padding:0 0 5px;margin:0}
+.nav-title{width:100%;height:32px;border:0;background:transparent;color:#91a4b8;display:flex;align-items:center;justify-content:space-between;padding:0 10px;margin:0;cursor:pointer;border-radius:7px;font:800 10px/1 inherit;letter-spacing:.12em;text-align:left}
+.nav-title:hover{background:rgba(255,255,255,.055);color:#cbd5e1}
+.nav-title-static{cursor:default}
+.nav-chevron{font-size:14px;line-height:1;transition:transform .18s ease;color:#71869c}
+.nav-group.is-collapsed .nav-chevron{transform:rotate(-90deg)}
+.nav-items{display:flex;flex-direction:column;gap:2px;max-height:600px;opacity:1;overflow:hidden;transition:max-height .2s ease,opacity .15s ease}
+.nav-group.is-collapsed .nav-items{max-height:0;opacity:0}
+.nav-group .tab{width:100%;min-height:37px;display:flex;align-items:center;gap:10px;border:0;background:transparent;color:#c3cfdb;text-align:left;white-space:nowrap;padding:8px 11px;border-radius:8px;box-sizing:border-box;cursor:pointer;font:500 13px/1.2 inherit}
+.navIcon{width:18px;flex:0 0 18px;text-align:center;font-size:13px;color:#8fa5ba}
+.nav-group .tab:hover{background:rgba(255,255,255,.065);color:#fff}
+.nav-group .tab.active{background:#315fe9;color:#fff;box-shadow:0 3px 10px rgba(49,95,233,.22)}
+.nav-group .tab.active .navIcon{color:#fff}
 .nav-group:last-child{border-bottom:0}
-.nav-title{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px 7px;font-size:10px;font-weight:800;letter-spacing:.12em;color:#8fa6bd;cursor:pointer;user-select:none;box-sizing:border-box}
-.nav-title:after{content:"⌄";font-size:14px;line-height:1;transition:transform .18s ease}
-.nav-group.collapsed .nav-title:after{transform:rotate(-90deg)}
-.nav-items{display:flex;flex-direction:column;gap:2px;overflow:hidden;max-height:500px;transition:max-height .2s ease,opacity .15s ease}
-.nav-group.collapsed .nav-items{max-height:0;opacity:0}
-.nav-group .tab{width:100%;display:flex;align-items:center;gap:10px;text-align:left;white-space:nowrap;min-height:38px;padding:8px 12px;border-radius:9px;box-sizing:border-box}
-.navIcon{width:18px;flex:0 0 18px;text-align:center;font-size:14px;opacity:.9}
-.nav-group .tab span:last-child{overflow:hidden;text-overflow:ellipsis}
-.nav-group .tab.active{background:#315fe9;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12)}
-.nav-group .tab:hover:not(.active){background:rgba(255,255,255,.06)}
-@media(max-width:800px){.nav-title{padding-left:8px}.nav-group .tab{padding-left:9px;padding-right:9px}}
+@media(max-width:800px){.erpSidebarNav{padding:4px!important}.nav-title{padding:0 8px}.nav-group .tab{padding-left:9px}}
 </style></nav><script>
 (function(){
   const nav=document.querySelector('.erpSidebarNav');
