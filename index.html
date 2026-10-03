@@ -10,11 +10,32 @@
 <div class="login" id="loginBox"><form class="loginbox" id="loginForm"><h2>SalesDesk</h2><div class="muted small">Sign in to continue</div><div class="field"><label>Username</label><input id="loginEmail" type="text" required autocomplete="username" autocapitalize="none"></div><div class="field"><label>Password</label><input id="loginPass" type="password" required autocomplete="current-password"></div><button class="primary">Sign in</button><button type="button" class="secondary" id="googleBtn">Sign in with Google</button><div class="lmsg" id="loginMsg"></div></form></div>
 <header><div class="brand"><div class="logo">SD</div><div><h1>SalesDesk</h1><p>Sales orders · Multi-item dispatch · Party balances</p></div></div><div class="toolbar"><span class="tag" id="syncTag" style="background:#ffffff20;color:white">Connecting…</span><button class="secondary" data-act="exportCSV">Export CSV</button><button class="secondary" data-act="logout">Log out</button><button class="secondary" data-act="backup">Backup JSON</button><label class="secondary" style="margin:0;cursor:pointer">Import backup<input type="file" accept=".json,application/json" id="restoreFile" style="display:none"></label></div></header>
 <div class="wrap"><div class="notice">Data is stored in a protected cloud database. Only authorised users can view or change it. Export a backup regularly.</div>
-<nav class="tabs erpSidebarNav">
+<style id="salesdesk-sidebar-style">
+.erpSidebarNav{display:flex!important;flex-direction:column!important;gap:3px!important;padding:84px 10px 10px!important}
+.erpSidebarNav .nav-group{display:block!important;border-bottom:1px solid rgba(255,255,255,.07);padding:0 0 5px;margin:0}
+.erpSidebarNav .nav-title{width:100%;height:34px;border:0;background:transparent;color:#91a4b8;display:flex;align-items:center;justify-content:space-between;padding:0 10px;margin:0;cursor:pointer;border-radius:7px;font:800 10px/1 inherit;letter-spacing:.12em;text-align:left}
+.erpSidebarNav .nav-title:hover{background:rgba(255,255,255,.055);color:#fff}
+.erpSidebarNav .nav-title-static{cursor:default}
+.erpSidebarNav .nav-chevron{font-size:14px;line-height:1;transition:transform .18s ease;color:#71869c}
+.erpSidebarNav .nav-group.is-collapsed .nav-chevron{transform:rotate(-90deg)}
+.erpSidebarNav .nav-items{display:flex!important;flex-direction:column!important;gap:2px!important;max-height:600px;opacity:1;overflow:hidden;transition:max-height .22s ease,opacity .15s ease}
+.erpSidebarNav .nav-group.is-collapsed .nav-items{max-height:0!important;opacity:0!important;pointer-events:none!important}
+.erpSidebarNav .nav-group .tab{width:100%;min-height:37px;display:flex;align-items:center;gap:10px;border:0;background:transparent;color:#c3cfdb;text-align:left;white-space:nowrap;padding:8px 11px;border-radius:8px;box-sizing:border-box;cursor:pointer;font:500 13px/1.2 inherit}
+.erpSidebarNav .navIcon{width:18px;flex:0 0 18px;text-align:center;font-size:13px;color:#8fa5ba}
+.erpSidebarNav .nav-group .tab:hover{background:rgba(255,255,255,.065);color:#fff}
+.erpSidebarNav .nav-group .tab.active{background:#315fe9;color:#fff;box-shadow:0 3px 10px rgba(49,95,233,.22)}
+.erpSidebarNav .nav-group .tab.active .navIcon{color:#fff}
+.erpSidebarNav .nav-group:last-child{border-bottom:0}
+@media(max-width:900px){.erpSidebarNav{padding:6px!important}.erpSidebarNav .nav-title{padding:0 8px}.erpSidebarNav .nav-group .tab{padding-left:9px}}
+</style>
+<nav class="tabs erpSidebarNav" id="salesdeskSidebar">
   <div class="nav-group nav-overview">
     <button class="nav-title nav-title-static" type="button"><span>WORKSPACE</span></button>
-    <div class="nav-items"><button class="tab active" data-tab="dashboard"><span class="navIcon">⌂</span><span>Overview</span></button></div>
+    <div class="nav-items">
+      <button class="tab active" data-tab="dashboard"><span class="navIcon">⌂</span><span>Overview</span></button>
+    </div>
   </div>
+
   <div class="nav-group" data-group="sales">
     <button class="nav-title" type="button" aria-expanded="true"><span>SALES</span><span class="nav-chevron">⌄</span></button>
     <div class="nav-items">
@@ -25,14 +46,21 @@
       <button class="tab" data-tab="balances"><span class="navIcon">₹</span><span>Party Balances</span></button>
     </div>
   </div>
+
   <div class="nav-group" data-group="purchase">
     <button class="nav-title" type="button" aria-expanded="true"><span>PURCHASE</span><span class="nav-chevron">⌄</span></button>
-    <div class="nav-items"><button class="tab" data-tab="purchase"><span class="navIcon">⇩</span><span>Purchase WhatsApp</span></button></div>
+    <div class="nav-items">
+      <button class="tab" data-tab="purchase"><span class="navIcon">⇩</span><span>Purchase WhatsApp</span></button>
+    </div>
   </div>
+
   <div class="nav-group" data-group="operations">
     <button class="nav-title" type="button" aria-expanded="true"><span>OPERATIONS</span><span class="nav-chevron">⌄</span></button>
-    <div class="nav-items"><button class="tab" data-tab="inventory"><span class="navIcon">▤</span><span>Inventory</span></button></div>
+    <div class="nav-items">
+      <button class="tab" data-tab="inventory"><span class="navIcon">▤</span><span>Inventory</span></button>
+    </div>
   </div>
+
   <div class="nav-group" data-group="finance">
     <button class="nav-title" type="button" aria-expanded="true"><span>FINANCE</span><span class="nav-chevron">⌄</span></button>
     <div class="nav-items">
@@ -41,63 +69,53 @@
       <button class="tab" data-tab="reports"><span class="navIcon">▥</span><span>Reports</span></button>
     </div>
   </div>
+
   <div class="nav-group" data-group="hr">
     <button class="nav-title" type="button" aria-expanded="true"><span>HR &amp; PAYROLL</span><span class="nav-chevron">⌄</span></button>
     <div class="nav-items"></div>
   </div>
-</nav><script>
-(function(){
-  function setupSidebar(){
-    const nav=document.querySelector('.erpSidebarNav');
-    if(!nav || nav.dataset.sidebarReady==='1') return;
-    nav.dataset.sidebarReady='1';
+</nav>
 
-    nav.addEventListener('click',function(e){
-      const title=e.target.closest('.nav-title');
-      if(!title || title.classList.contains('nav-title-static')) return;
-      const group=title.closest('.nav-group[data-group]');
-      if(!group) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const collapsed=group.classList.toggle('is-collapsed');
-      title.setAttribute('aria-expanded',collapsed?'false':'true');
-      localStorage.setItem('salesdesk_sidebar_'+group.dataset.group,collapsed?'closed':'open');
-    },true);
+<script>
+(function(){
+  function initSalesDeskSidebar(){
+    const nav=document.getElementById('salesdeskSidebar');
+    if(!nav) return;
 
     nav.querySelectorAll('.nav-group[data-group]').forEach(function(group){
       const title=group.querySelector('.nav-title');
       if(!title) return;
+
       const key='salesdesk_sidebar_'+group.dataset.group;
-      if(localStorage.getItem(key)==='closed'){
-        group.classList.add('is-collapsed');
-        title.setAttribute('aria-expanded','false');
-      }else{
-        group.classList.remove('is-collapsed');
-        title.setAttribute('aria-expanded','true');
-      }
+      const closed=localStorage.getItem(key)==='closed';
+
+      group.classList.toggle('is-collapsed',closed);
+      title.setAttribute('aria-expanded',closed?'false':'true');
+
+      if(title.dataset.toggleBound==='1') return;
+      title.dataset.toggleBound='1';
+
+      title.addEventListener('click',function(event){
+        event.preventDefault();
+        event.stopPropagation();
+
+        const nowClosed=!group.classList.contains('is-collapsed');
+        group.classList.toggle('is-collapsed',nowClosed);
+        title.setAttribute('aria-expanded',nowClosed?'false':'true');
+        localStorage.setItem(key,nowClosed?'closed':'open');
+      });
     });
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setupSidebar);
-  else setupSidebar();
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',initSalesDeskSidebar);
+  }else{
+    initSalesDeskSidebar();
+  }
+  window.addEventListener('load',initSalesDeskSidebar);
 })();
-</script><style>
-.erpSidebarNav{display:flex!important;flex-direction:column!important;gap:3px!important;padding:4px 8px!important}
-.nav-group{border-bottom:1px solid rgba(255,255,255,.07);padding:0 0 5px;margin:0}
-.nav-title{width:100%;height:34px;border:0;background:transparent;color:#91a4b8;display:flex;align-items:center;justify-content:space-between;padding:0 10px;margin:0;cursor:pointer;border-radius:7px;font:800 10px/1 inherit;letter-spacing:.12em;text-align:left}
-.nav-title:hover{background:rgba(255,255,255,.055);color:#fff}
-.nav-title-static{cursor:default}
-.nav-chevron{font-size:14px;line-height:1;transition:transform .18s ease;color:#71869c}
-.nav-group.is-collapsed .nav-chevron{transform:rotate(-90deg)}
-.nav-items{display:flex;flex-direction:column;gap:2px;max-height:600px;opacity:1;overflow:hidden;transition:max-height .22s ease,opacity .15s ease}
-.nav-group.is-collapsed .nav-items{max-height:0!important;opacity:0!important;pointer-events:none}
-.nav-group .tab{width:100%;min-height:37px;display:flex;align-items:center;gap:10px;border:0;background:transparent;color:#c3cfdb;text-align:left;white-space:nowrap;padding:8px 11px;border-radius:8px;box-sizing:border-box;cursor:pointer;font:500 13px/1.2 inherit}
-.navIcon{width:18px;flex:0 0 18px;text-align:center;font-size:13px;color:#8fa5ba}
-.nav-group .tab:hover{background:rgba(255,255,255,.065);color:#fff}
-.nav-group .tab.active{background:#315fe9;color:#fff;box-shadow:0 3px 10px rgba(49,95,233,.22)}
-.nav-group .tab.active .navIcon{color:#fff}
-.nav-group:last-child{border-bottom:0}
-@media(max-width:800px){.erpSidebarNav{padding:4px!important}.nav-title{padding:0 8px}.nav-group .tab{padding-left:9px}}
-</style></nav>
+</script>
+
 <section id="dashboard"><div class="metrics"><div class="metric"><span>All sales orders</span><strong id="mOrders">0</strong></div><div class="metric"><span>Open orders</span><strong id="mOpen">0</strong></div><div class="metric"><span>Total ordered</span><strong id="mOrdered">0</strong></div><div class="metric"><span>Outstanding quantity</span><strong id="mBalance">0</strong></div></div><div class="panel"><h2>Order fulfilment snapshot <span class="tag">Quantity in QTL</span></h2><div class="tablewrap"><table><thead><tr><th>SO No.</th><th>Order date</th><th>Party</th><th>Items</th><th>Ordered</th><th>Dispatched</th><th>Balance</th><th>Status</th></tr></thead><tbody id="dashRows"></tbody></table></div></div><div class="panel"><h2>Quick guidance</h2><div class="grid"><div><b>1. Create masters</b><p class="muted small">Add parties and products with default prices first.</p></div><div><b>2. Record an SO</b><p class="muted small">Add one or more products and set a rate for each line.</p></div><div><b>3. Enter dispatch</b><p class="muted small">Choose an SO; its remaining product balances load automatically.</p></div><div><b>4. Review party</b><p class="muted small">Search a party to see item-wise balance and applicable rates.</p></div></div></div></section>
 <section id="parties" class="hidden"><div class="panel"><h2>Add new party</h2><form id="partyForm"><div class="grid"><div class="field"><label>Party code</label><input id="partyCode" readonly></div><div class="field"><label>Party name *</label><input id="partyName" required placeholder="Enter legal / trading name"></div><div class="field"><label>Contact person</label><input id="partyContact" placeholder="Optional"></div><div class="field"><label>Phone</label><input id="partyPhone" placeholder="Optional"></div><div class="field"><label>GSTIN</label><input id="partyGST" maxlength="15" placeholder="Optional"></div><div class="field"><label>Address</label><input id="partyAddress" placeholder="Optional"></div></div><div class="actions"><button class="primary">Save party</button><button type="reset" class="secondary" data-act="setPartyCode">Clear</button></div></form></div><div class="panel"><h2>Party directory</h2><div class="filters"><input id="partyMasterSearch" placeholder="Search party, code, phone"></div><div class="tablewrap"><table><thead><tr><th>Code</th><th>Party name</th><th>Contact</th><th>Phone</th><th>GSTIN</th><th>Action</th></tr></thead><tbody id="partyMasterRows"></tbody></table></div></div></section>
 <section id="products" class="hidden"><div class="panel"><h2>Add product and default selling price</h2><form id="productForm"><div class="grid"><div class="field"><label>Product code</label><input id="productCode" readonly></div><div class="field"><label>Product name *</label><input id="productName" required placeholder="e.g. Refined Rice Bran Oil"></div><div class="field"><label>Unit</label><select id="productUnit"><option>QTL</option><option>KG</option><option>MT</option><option>PCS</option><option>BAG</option></select></div><div class="field"><label>Default rate (₹ per unit)</label><input id="productRate" type="number" min="0" step=".01" placeholder="0.00"></div></div><div class="actions"><button class="primary">Save product</button><button type="reset" class="secondary" data-act="setProductCode">Clear</button></div></form></div><div class="panel"><h2>Product & price list</h2><div class="filters"><input id="productSearch" placeholder="Search product or code"></div><div class="tablewrap"><table><thead><tr><th>Code</th><th>Product</th><th>Unit</th><th>Default rate</th><th>Action</th></tr></thead><tbody id="productRows"></tbody></table></div></div></section>
