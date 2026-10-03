@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment Desk | Follow-up</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--navy:#0b1726;--blue:#315fe9;--bg:#f4f7fb;--card:#fff;--text:#172334;--muted:#718096;--line:#e5eaf1;--red:#dc3545;--amber:#c98200;--green:#16834b;--shadow:0 8px 28px rgba(15,31,50,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.login{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#0b1726,#19355d)}
+.loginbox{width:min(420px,100%);background:#fff;border-radius:18px;padding:32px;box-shadow:0 24px 70px #0005}.loginbox h1{margin:0 0 4px}.loginbox p{margin:0 0 24px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}.field label{font-weight:700;font-size:12px;color:#506174}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 11px;background:#fff;outline:none}.field textarea{min-height:90px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#7896ee;box-shadow:0 0 0 3px #315fe918}
+.primary,.secondary,.danger{border:0;border-radius:9px;padding:10px 14px;font-weight:700}.primary{background:var(--blue);color:#fff}.secondary{background:#eef2f7;color:#34465a}.danger{background:#feecee;color:#b42332}.full{width:100%}
+.error{color:#b42332;margin-top:10px;font-size:13px}
+.app{display:none}.top{height:68px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:10}.brand{display:flex;align-items:center;gap:11px}.logo{width:38px;height:38px;border-radius:10px;background:var(--blue);display:grid;place-items:center;font-weight:900}.brand strong{font-size:18px}.brand small{display:block;color:#9fb0c3}.topRight{display:flex;align-items:center;gap:10px}.topRight button{background:#ffffff16;color:#fff;border:1px solid #ffffff22}
+.layout{display:flex;min-height:calc(100vh - 68px)}.side{width:225px;background:#101d2c;color:#b9c6d4;padding:18px 10px;flex:none}.navbtn{width:100%;background:transparent;border:0;color:#b9c6d4;text-align:left;padding:11px 12px;border-radius:8px;margin-bottom:3px}.navbtn:hover,.navbtn.active{background:#ffffff12;color:#fff}.navbtn.active{background:var(--blue)}
+.main{padding:24px;max-width:1500px;width:100%;margin:auto}.view{display:none}.view.active{display:block}.pageHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.pageHead h1{margin:0 0 3px;font-size:24px}.pageHead p{margin:0;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:18px;box-shadow:var(--shadow)}.card span{display:block;color:var(--muted);font-size:12px;font-weight:700}.card strong{display:block;font-size:24px;margin-top:5px}.card.over strong{color:var(--red)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px}.panel h2{font-size:16px;margin:0 0 14px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6a7a8e;background:#f8fafc}td{font-size:13px}.money{font-weight:800}.status{display:inline-block;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800}.s-red{background:#feecee;color:#b42332}.s-amber{background:#fff5dc;color:#9a6500}.s-green{background:#e9f8ef;color:#137442}.s-blue{background:#eaf0ff;color:#3156c8}.muted{color:var(--muted)}
+.filters{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}.filters input,.filters select{padding:9px 10px;border:1px solid var(--line);border-radius:8px;min-width:190px}
+.empty{text-align:center;color:var(--muted);padding:30px}.hidden{display:none!important}.modal{position:fixed;inset:0;background:#09132199;display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.modal.show{display:flex}.modalbox{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:15px;padding:22px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modalhead h2{margin:0}
+@media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.side{width:185px}}
+@media(max-width:650px){.layout{display:block}.side{width:100%;display:flex;overflow:auto}.navbtn{min-width:145px}.main{padding:14px}.cards,.grid{grid-template-columns:1fr}.top{padding:0 14px}}
+</style>
+</head>
+<body>
+<div class="login" id="login">
+<form class="loginbox" id="loginForm">
+<h1>Payment Desk</h1><p>Payment collection & follow-up</p>
+<div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" required></div>
+<div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+<button class="primary full">Sign in</button><div id="loginError" class="error"></div>
+</form>
+</div>
+
+<div class="app" id="app">
+<header class="top"><div class="brand"><div class="logo">₹</div><div><strong>Payment Desk</strong><small>Receivables & Follow-up</small></div></div><div class="topRight"><span id="userEmail"></span><button class="secondary" id="logout">Log out</button></div></header>
+<div class="layout">
+<aside class="side">
+<button class="navbtn active" data-view="dashboard">⌂ Dashboard</button>
+<button class="navbtn" data-view="parties">♙ Parties</button>
+<button class="navbtn" data-view="invoices">▣ Invoices</button>
+<button class="navbtn" data-view="followups">↗ Follow-ups</button>
+<button class="navbtn" data-view="payments">₹ Payments</button>
+</aside>
+<main class="main">
+<section id="dashboard" class="view active">
+<div class="pageHead"><div><h1>Collection Dashboard</h1><p>See what needs attention today.</p></div><button class="primary" id="quickFollow">+ Follow-up</button></div>
+<div class="cards">
+<div class="card"><span>Total Receivable</span><strong id="cReceivable">₹0</strong></div>
+<div class="card"><span>Due Today</span><strong id="cToday">₹0</strong></div>
+<div class="card over"><span>Overdue</span><strong id="cOverdue">₹0</strong></div>
+<div class="card"><span>Due This Week</span><strong id="cWeek">₹0</strong></div>
+<div class="card"><span>Collected This Month</span><strong id="cCollected">₹0</strong></div>
+</div>
+<div class="panel"><h2>Follow-ups requiring attention</h2><div class="tablewrap"><table><thead><tr><th>Party</th><th>Outstanding</th><th>Due</th><th>Status</th><th>Last Follow-up</th><th>Next Follow-up</th><th></th></tr></thead><tbody id="dashRows"></tbody></table></div></div>
+</section>
+
+<section id="parties" class="view">
+<div class="pageHead"><div><h1>Parties</h1><p>Customer contacts and collection information.</p></div><button class="primary" id="addParty">+ Add Party</button></div>
+<div class="panel"><div class="filters"><input id="partySearch" placeholder="Search party / phone"></div><div class="tablewrap"><table><thead><tr><th>Party</th><th>Contact</th><th>Phone</th><th>Outstanding</th><th>Overdue</th><th></th></tr></thead><tbody id="partyRows"></tbody></table></div></div>
+</section>
+
+<section id="invoices" class="view">
+<div class="pageHead"><div><h1>Invoices</h1><p>Track invoice-wise outstanding balances.</p></div><button class="primary" id="addInvoice">+ Add Invoice</button></div>
+<div class="panel"><div class="filters"><input id="invoiceSearch" placeholder="Search invoice / party"><select id="invoiceFilter"><option value="">All</option><option value="open">Outstanding</option><option value="overdue">Overdue</option><option value="paid">Paid</option></select></div><div class="tablewrap"><table><thead><tr><th>Invoice</th><th>Date</th><th>Party</th><th>Amount</th><th>Received</th><th>Balance</th><th>Due Date</th><th>Status</th><th></th></tr></thead><tbody id="invoiceRows"></tbody></table></div></div>
+</section>
+
+<section id="followups" class="view">
+<div class="pageHead"><div><h1>Follow-ups</h1><p>Record every collection call, WhatsApp message and promise.</p></div><button class="primary" id="addFollowup">+ Record Follow-up</button></div>
+<div class="panel"><div class="filters"><input id="followSearch" placeholder="Search party / discussion"><select id="followFilter"><option value="">All</option><option value="today">Today</option><option value="pending">Next Follow-up Due</option></select></div><div class="tablewrap"><table><thead><tr><th>Date</th><th>Party</th><th>Mode</th><th>Person</th><th>Discussion</th><th>Promise</th><th>Next Follow-up</th></tr></thead><tbody id="followRows"></tbody></table></div></div>
+</section>
+
+<section id="payments" class="view">
+<div class="pageHead"><div><h1>Payments</h1><p>Record money received and keep the ledger history.</p></div><button class="primary" id="addPayment">+ Record Payment</button></div>
+<div class="panel"><div class="filters"><input id="paymentSearch" placeholder="Search party / UTR"></div><div class="tablewrap"><table><thead><tr><th>Date</th><th>Party</th><th>Invoice</th><th>Amount</th><th>Mode</th><th>UTR / Reference</th><th>Remarks</th></tr></thead><tbody id="paymentRows"></tbody></table></div></div>
+</section>
+</main></div></div>
+
+<div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h2 id="modalTitle"></h2><button class="secondary" id="closeModal">Close</button></div><div id="modalBody"></div></div></div>
+
+<script src="../vendor/supabase.js"></script>
+<script src="../js/config.js"></script>
+<script>
+(function(){
+"use strict";
+const sb=window.supabaseClient||window.supabase;
+const $=id=>document.getElementById(id);
+const state={parties:[],invoices:[],payments:[],followups:[]};
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+const dmy=v=>{const p=String(v||"").split("-");return p.length===3?p[2]+"-"+p[1]+"-"+p[0]:""};
+const money=v=>"₹"+Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function allowed(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user)return null;
+  const {data,error}=await sb.from("payment_users").select("id,role,active").eq("user_id",user.id).maybeSingle();
+  if(error||!data||data.active===false)return null;
+  return user;
+}
+async function boot(){
+  const user=await allowed();
+  if(!user){$("login").style.display="grid";$("app").style.display="none";return}
+  $("login").style.display="none";$("app").style.display="block";$("userEmail").textContent=user.email||"";
+  await loadAll();
+}
+async function loadAll(){
+  const [p,i,pay,f]=await Promise.all([
+    sb.from("payment_parties").select("*").order("name"),
+    sb.from("payment_invoices").select("*").order("due_date",{ascending:true}),
+    sb.from("payment_payments").select("*").order("payment_date",{ascending:false}),
+    sb.from("payment_followups").select("*").order("followup_date",{ascending:false})
+  ]);
+  if(p.error||i.error||pay.error||f.error){alert("Could not load Payment Desk data. Check the Supabase SQL setup.");return}
+  state.parties=p.data||[];state.invoices=i.data||[];state.payments=pay.data||[];state.followups=f.data||[];
+  render();
+}
+function party(id){return state.parties.find(x=>x.id===id)}
+function inv(id){return state.invoices.find(x=>x.id===id)}
+function balance(i){return Math.max(0,Number(i.amount||0)-Number(i.received_amount||0))}
+function invoiceStatus(i){
+  const b=balance(i);if(b<=0)return ["Paid","s-green"];
+  if(i.due_date<today())return ["Overdue","s-red"];
+  if(i.due_date===today())return ["Due Today","s-amber"];
+  return ["Open","s-blue"];
+}
+function outstandingParty(id){return state.invoices.filter(i=>i.party_id===id).reduce((a,i)=>a+balance(i),0)}
+function overdueParty(id){return state.invoices.filter(i=>i.party_id===id&&balance(i)>0&&i.due_date<today()).reduce((a,i)=>a+balance(i),0)}
+function render(){
+  const total=state.invoices.reduce((a,i)=>a+balance(i),0);
+  const td=state.invoices.filter(i=>balance(i)>0&&i.due_date===today()).reduce((a,i)=>a+balance(i),0);
+  const od=state.invoices.filter(i=>balance(i)>0&&i.due_date<today()).reduce((a,i)=>a+balance(i),0);
+  const week=new Date();week.setDate(week.getDate()+7);const ws=week.toISOString().slice(0,10);
+  const wk=state.invoices.filter(i=>balance(i)>0&&i.due_date>=today()&&i.due_date<=ws).reduce((a,i)=>a+balance(i),0);
+  const month=today().slice(0,7);const col=state.payments.filter(x=>String(x.payment_date||"").slice(0,7)===month).reduce((a,x)=>a+Number(x.amount||0),0);
+  $("cReceivable").textContent=money(total);$("cToday").textContent=money(td);$("cOverdue").textContent=money(od);$("cWeek").textContent=money(wk);$("cCollected").textContent=money(col);
+  $("dashRows").innerHTML=state.parties.map(p=>{
+    const out=outstandingParty(p.id),odv=overdueParty(p.id);if(!out)return "";
+    const fi=state.followups.find(x=>x.party_id===p.id);
+    const due=state.invoices.filter(i=>i.party_id===p.id&&balance(i)>0).sort((a,b)=>a.due_date.localeCompare(b.due_date))[0];
+    const st=odv?["Overdue","s-red"]:["Open","s-blue"];
+    return "<tr><td><b>"+esc(p.name)+"</b></td><td class='money'>"+money(out)+"</td><td>"+dmy(due?.due_date)+"</td><td><span class='status "+st[1]+"'>"+st[0]+"</span></td><td>"+dmy(fi?.followup_date)+"</td><td>"+dmy(fi?.next_followup)+"</td><td><button class='secondary btnFollow' data-id='"+p.id+"'>Follow-up</button></td></tr>"
+  }).join("")||"<tr><td colspan='7' class='empty'>No outstanding parties.</td></tr>";
+  renderParties();renderInvoices();renderFollowups();renderPayments();
+}
+function renderParties(){
+  const q=($("partySearch")?.value||"").toLowerCase();
+  $("partyRows").innerHTML=state.parties.filter(p=>(p.name+" "+(p.phone||"")).toLowerCase().includes(q)).map(p=>"<tr><td><b>"+esc(p.name)+"</b></td><td>"+esc(p.contact||"")+"</td><td>"+esc(p.phone||"")+"</td><td class='money'>"+money(outstandingParty(p.id))+"</td><td class='money'>"+money(overdueParty(p.id))+"</td><td><button class='secondary btnPartyFollow' data-id='"+p.id+"'>Follow-up</button></td></tr>").join("")||"<tr><td colspan='6' class='empty'>No parties.</td></tr>"
+}
+function renderInvoices(){
+  const q=($("invoiceSearch")?.value||"").toLowerCase(), f=$("invoiceFilter")?.value||"";
+  $("invoiceRows").innerHTML=state.invoices.filter(i=>{
+    const p=party(i.party_id),[st]=invoiceStatus(i);return (i.invoice_no+" "+(p?.name||"")).toLowerCase().includes(q)&&(f==="open"?balance(i)>0:f==="overdue"?st==="Overdue":f==="paid"?st==="Paid":true)
+  }).map(i=>{const p=party(i.party_id),[st,cl]=invoiceStatus(i);return "<tr><td><b>"+esc(i.invoice_no)+"</b></td><td>"+dmy(i.invoice_date)+"</td><td>"+esc(p?.name||"")+"</td><td>"+money(i.amount)+"</td><td>"+money(i.received_amount)+"</td><td class='money'>"+money(balance(i))+"</td><td>"+dmy(i.due_date)+"</td><td><span class='status "+cl+"'>"+st+"</span></td><td><button class='secondary btnPay' data-id='"+i.id+"'>Payment</button></td></tr>"}).join("")||"<tr><td colspan='9' class='empty'>No invoices.</td></tr>"
+}
+function renderFollowups(){
+  const q=($("followSearch")?.value||"").toLowerCase(),f=$("followFilter")?.value||"";
+  $("followRows").innerHTML=state.followups.filter(x=>{const p=party(x.party_id);return (p?.name+" "+(x.discussion||"")).toLowerCase().includes(q)&&(f==="today"?x.next_followup===today():f==="pending"?x.next_followup<=today():true)}).map(x=>"<tr><td>"+dmy(x.followup_date)+"</td><td><b>"+esc(party(x.party_id)?.name||"")+"</b></td><td>"+esc(x.mode||"")+"</td><td>"+esc(x.person_contacted||"")+"</td><td style='max-width:300px;white-space:normal'>"+esc(x.discussion||"")+"</td><td>"+(x.promise_amount?money(x.promise_amount)+" / "+dmy(x.promise_date):"-")+"</td><td>"+dmy(x.next_followup)+"</td></tr>").join("")||"<tr><td colspan='7' class='empty'>No follow-ups.</td></tr>"
+}
+function renderPayments(){
+  const q=($("paymentSearch")?.value||"").toLowerCase();
+  $("paymentRows").innerHTML=state.payments.filter(x=>(party(x.party_id)?.name+" "+(x.reference||"")).toLowerCase().includes(q)).map(x=>"<tr><td>"+dmy(x.payment_date)+"</td><td><b>"+esc(party(x.party_id)?.name||"")+"</b></td><td>"+esc(inv(x.invoice_id)?.invoice_no||"")+"</td><td class='money'>"+money(x.amount)+"</td><td>"+esc(x.mode||"")+"</td><td>"+esc(x.reference||"")+"</td><td>"+esc(x.remarks||"")+"</td></tr>").join("")||"<tr><td colspan='7' class='empty'>No payments.</td></tr>"
+}
+function partyOptions(selected=""){return '<option value="">Select party</option>'+state.parties.map(p=>'<option value="'+p.id+'" '+(p.id===selected?"selected":"")+'>'+esc(p.name)+'</option>').join("")}
+function invoiceOptions(partyId,selected=""){return '<option value="">Select invoice</option>'+state.invoices.filter(i=>i.party_id===partyId&&balance(i)>0).map(i=>'<option value="'+i.id+'" '+(i.id===selected?"selected":"")+'>'+esc(i.invoice_no)+' · '+money(balance(i))+'</option>').join("")}
+function openModal(title,body,save){
+  $("modalTitle").textContent=title;$("modalBody").innerHTML=body;$("modal").classList.add("show");
+  $("modalSave")?.addEventListener("click",async()=>{await save();});
+}
+$("closeModal").onclick=()=>$("modal").classList.remove("show");
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").classList.remove("show")});
+function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(v).classList.add("active");document.querySelectorAll(".navbtn").forEach(x=>x.classList.toggle("active",x.dataset.view===v));}
+document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>show(b.dataset.view));
+$("logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
+$("loginForm").onsubmit=async e=>{e.preventDefault();$("loginError").textContent="";const {error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){$("loginError").textContent=error.message;return}await boot()};
+$("addParty").onclick=()=>openModal("Add Party",'<div class="grid"><div class="field"><label>Party name *</label><input id="mName"></div><div class="field"><label>Contact person</label><input id="mContact"></div><div class="field"><label>Phone</label><input id="mPhone"></div><div class="field"><label>WhatsApp</label><input id="mWhatsapp"></div></div><div class="actions"><button class="primary" id="modalSave">Save Party</button></div>',async()=>{const {error}=await sb.from("payment_parties").insert({name:$("mName").value.trim(),contact:$("mContact").value.trim(),phone:$("mPhone").value.trim(),whatsapp:$("mWhatsapp").value.trim()});if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()});
+$("addInvoice").onclick=()=>openModal("Add Invoice",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions()+'</select></div><div class="field"><label>Invoice No. *</label><input id="mInv"></div><div class="field"><label>Invoice Date</label><input id="mInvDate" type="date" value="'+today()+'"></div><div class="field"><label>Amount</label><input id="mAmount" type="number" min="0" step=".01"></div><div class="field"><label>Due Date</label><input id="mDue" type="date"></div></div><div class="actions"><button class="primary" id="modalSave">Save Invoice</button></div>',async()=>{const row={party_id:$("mParty").value,invoice_no:$("mInv").value.trim(),invoice_date:$("mInvDate").value,amount:Number($("mAmount").value||0),due_date:$("mDue").value,received_amount:0};if(!row.party_id||!row.invoice_no||!row.amount){alert("Party, invoice number and amount are required.");return}const {error}=await sb.from("payment_invoices").insert(row);if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()});
+function followModal(pid=""){openModal("Record Follow-up",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions(pid)+'</select></div><div class="field"><label>Follow-up Date</label><input id="mDate" type="date" value="'+today()+'"></div><div class="field"><label>Mode</label><select id="mMode"><option>Call</option><option>WhatsApp</option><option>Visit</option><option>Other</option></select></div><div class="field"><label>Person Contacted</label><input id="mPerson"></div><div class="field"><label>Promise Date</label><input id="mPromiseDate" type="date"></div><div class="field"><label>Promise Amount</label><input id="mPromiseAmount" type="number" min="0" step=".01"></div><div class="field"><label>Next Follow-up</label><input id="mNext" type="date"></div></div><div class="field"><label>Discussion</label><textarea id="mDiscussion" placeholder="What did the customer say?"></textarea></div><div class="actions"><button class="primary" id="modalSave">Save Follow-up</button></div>',async()=>{const row={party_id:$("mParty").value,followup_date:$("mDate").value,mode:$("mMode").value,person_contacted:$("mPerson").value.trim(),discussion:$("mDiscussion").value.trim(),promise_date:$("mPromiseDate").value||null,promise_amount:Number($("mPromiseAmount").value||0),next_followup:$("mNext").value||null};if(!row.party_id){alert("Select a party.");return}const {error}=await sb.from("payment_followups").insert(row);if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()})}
+$("addFollowup").onclick=()=>followModal();$("quickFollow").onclick=()=>followModal();
+function paymentModal(invoiceId=""){const ii=inv(invoiceId);openModal("Record Payment",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions(ii?.party_id||"")+'</select></div><div class="field"><label>Invoice</label><select id="mInvoice">'+invoiceOptions(ii?.party_id||"",invoiceId)+'</select></div><div class="field"><label>Payment Date</label><input id="mPayDate" type="date" value="'+today()+'"></div><div class="field"><label>Amount</label><input id="mPayAmount" type="number" min="0" step=".01"></div><div class="field"><label>Mode</label><select id="mMode"><option>NEFT</option><option>RTGS</option><option>IMPS</option><option>UPI</option><option>Cheque</option><option>Cash</option><option>Other</option></select></div><div class="field"><label>UTR / Reference</label><input id="mRef"></div></div><div class="field"><label>Remarks</label><input id="mRemarks"></div><div class="actions"><button class="primary" id="modalSave">Save Payment</button></div>',async()=>{const row={party_id:$("mParty").value,invoice_id:$("mInvoice").value||null,payment_date:$("mPayDate").value,amount:Number($("mPayAmount").value||0),mode:$("mMode").value,reference:$("mRef").value.trim(),remarks:$("mRemarks").value.trim()};if(!row.party_id||!row.amount){alert("Party and amount are required.");return}const {error}=await sb.from("payment_payments").insert(row);if(error){alert(error.message);return}if(row.invoice_id){const x=inv(row.invoice_id);const newReceived=Number(x.received_amount||0)+row.amount;const {error:e}=await sb.from("payment_invoices").update({received_amount:newReceived}).eq("id",row.invoice_id);if(e){alert(e.message);return}}$("modal").classList.remove("show");await loadAll()});
+}
+$("addPayment").onclick=()=>paymentModal();
+$("partySearch").oninput=renderParties;$("invoiceSearch").oninput=renderInvoices;$("invoiceFilter").onchange=renderInvoices;$("followSearch").oninput=renderFollowups;$("followFilter").onchange=renderFollowups;$("paymentSearch").oninput=renderPayments;
+document.addEventListener("click",e=>{const f=e.target.closest(".btnFollow,.btnPartyFollow");if(f)followModal(f.dataset.id);const p=e.target.closest(".btnPay");if(p)paymentModal(p.dataset.id)});
+sb.auth.onAuthStateChange(()=>setTimeout(boot,0));
+boot();
+})();
+</script>
+</body></html>
