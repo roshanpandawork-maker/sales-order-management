@@ -16,6 +16,7 @@
   const firstNum = v => nums(v)[0] || "";
   const money = v => "₹" + Number(v || 0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
   const today = () => new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+  const formatDateDMY = value => { const parts=String(value||"").split("-"); return parts.length===3 ? parts[2]+"-"+parts[1]+"-"+parts[0] : String(value||""); };
 
   function supplierByInput(){
     const value = ($( "puSupplier" )?.value || "").trim().toLowerCase();
@@ -56,7 +57,7 @@
 
     return "*PURCHASE DETAILS*\n\n" +
       "Supplier Name: " + supplier + "\n" +
-      "Date: " + date + "\n" +
+      "Date: " + formatDateDMY(date) + "\n" +
       "G.R. No.: " + gr + "\n" +
       "Truck No.: " + truck + "\n" +
       "Bags: " + bags + "\n" +
