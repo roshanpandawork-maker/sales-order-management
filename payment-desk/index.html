@@ -41,6 +41,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 <div class="layout">
 <aside class="side">
 <button class="navbtn active" data-view="dashboard">⌂ Dashboard</button>
+<button class="navbtn" data-view="debtors">▤ Debtor Line-up</button>
 <button class="navbtn" data-view="parties">♙ Parties</button>
 <button class="navbtn" data-view="invoices">▣ Invoices</button>
 <button class="navbtn" data-view="followups">↗ Follow-ups</button>
@@ -50,14 +51,21 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 <section id="dashboard" class="view active">
 <div class="pageHead"><div><h1>Collection Dashboard</h1><p>See what needs attention today.</p></div><button class="primary" id="quickFollow">+ Follow-up</button></div>
 <div class="cards">
-<div class="card"><span>Total Receivable</span><strong id="cReceivable">₹0</strong></div>
-<div class="card"><span>Due Today</span><strong id="cToday">₹0</strong></div>
-<div class="card over"><span>Overdue</span><strong id="cOverdue">₹0</strong></div>
-<div class="card"><span>Due This Week</span><strong id="cWeek">₹0</strong></div>
+<div class="card"><span>Total Pending</span><strong id="cReceivable">₹0</strong></div>
+<div class="card"><span>Parties</span><strong id="cParties">0</strong></div>
+<div class="card"><span>Brokers</span><strong id="cBrokers">0</strong></div>
+<div class="card"><span>Today Received</span><strong id="cToday">₹0</strong></div>
 <div class="card"><span>Collected This Month</span><strong id="cCollected">₹0</strong></div>
 </div>
 <div class="panel"><h2>Follow-ups requiring attention</h2><div class="tablewrap"><table><thead><tr><th>Party</th><th>Outstanding</th><th>Due</th><th>Status</th><th>Last Follow-up</th><th>Next Follow-up</th><th></th></tr></thead><tbody id="dashRows"></tbody></table></div></div>
 </section>
+
+<section id="debtors" class="view">
+<div class="pageHead"><div><h1>Debtor Line-up</h1><p>Tally-style receivables: broker, party, due, receipts and live pending balance.</p></div><button class="primary" id="refreshDebtors">↻ Refresh</button></div>
+<div class="panel">
+<div class="filters"><input id="debtorSearch" placeholder="Search party / broker"><select id="brokerFilter"><option value="">All Brokers</option></select><select id="statusFilter"><option value="">All Status</option><option>Pending</option><option>Running</option><option>LEDGER</option></select></div>
+<div class="tablewrap"><table><thead><tr><th>Broker</th><th>Party</th><th>Total Amount</th><th>Due</th><th>Status</th><th>Received Till Date</th><th>Today Received</th><th>Pending</th><th>Progress</th><th></th></tr></thead><tbody id="debtorRows"></tbody></table></div>
+</div></section>
 
 <section id="parties" class="view">
 <div class="pageHead"><div><h1>Parties</h1><p>Customer contacts and collection information.</p></div><button class="primary" id="addParty">+ Add Party</button></div>
@@ -91,7 +99,7 @@ const SD_CFG=window.SALESDESK_CONFIG;
 if(!SD_CFG||!window.supabase||typeof window.supabase.createClient!=="function"){throw new Error("Supabase configuration could not be loaded.")}
 const sb=window.supabase.createClient(SD_CFG.SUPABASE_URL,SD_CFG.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
-const state={parties:[],invoices:[],payments:[],followups:[]};
+const state={parties:[],invoices:[],payments:[],followups:[],openings:[]};
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 const dmy=v=>{const p=String(v||"").split("-");return p.length===3?p[2]+"-"+p[1]+"-"+p[0]:""};
 const money=v=>"₹"+Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -122,14 +130,18 @@ async function boot(){
   }
 }
 async function loadAll(){
-  const [p,i,pay,f]=await Promise.all([
+  const [p,i,pay,f,o]=await Promise.all([
     sb.from("payment_parties").select("*").order("name"),
     sb.from("payment_invoices").select("*").order("due_date",{ascending:true}),
     sb.from("payment_payments").select("*").order("payment_date",{ascending:false}),
-    sb.from("payment_followups").select("*").order("followup_date",{ascending:false})
+    sb.from("payment_followups").select("*").order("followup_date",{ascending:false}),
+    sb.from("payment_opening_balances").select("*")
   ]);
-  if(p.error||i.error||pay.error||f.error){alert("Could not load Payment Desk data. Check the Supabase SQL setup.");return}
-  state.parties=p.data||[];state.invoices=i.data||[];state.payments=pay.data||[];state.followups=f.data||[];
+  if(p.error||i.error||pay.error||f.error||o.error){
+    const msg=(o.error&&o.error.message)||"Could not load Payment Desk data. Run 06_payment_desk.sql and the debtor migration SQL first.";
+    alert(msg);return
+  }
+  state.parties=p.data||[];state.invoices=i.data||[];state.payments=pay.data||[];state.followups=f.data||[];state.openings=o.data||[];
   render();
 }
 function party(id){return state.parties.find(x=>x.id===id)}
@@ -141,28 +153,45 @@ function invoiceStatus(i){
   if(i.due_date===today())return ["Due Today","s-amber"];
   return ["Open","s-blue"];
 }
-function outstandingParty(id){return state.invoices.filter(i=>i.party_id===id).reduce((a,i)=>a+balance(i),0)}
-function overdueParty(id){return state.invoices.filter(i=>i.party_id===id&&balance(i)>0&&i.due_date<today()).reduce((a,i)=>a+balance(i),0)}
+function opening(id){return state.openings.find(x=>x.party_id===id)}
+function newPayments(id){return state.payments.filter(x=>x.party_id===id).reduce((a,x)=>a+Number(x.amount||0),0)}
+function receivedParty(id){const o=opening(id);return Number(o?.received_amount||0)+newPayments(id)}
+function totalParty(id){return Number(opening(id)?.total_amount||0)}
+function outstandingParty(id){const o=opening(id);if(o)return Math.max(0,totalParty(id)-receivedParty(id));return state.invoices.filter(i=>i.party_id===id).reduce((a,i)=>a+balance(i),0)}
+function overdueParty(id){const o=opening(id);return o?0:state.invoices.filter(i=>i.party_id===id&&balance(i)>0&&i.due_date<today()).reduce((a,i)=>a+balance(i),0)}
+function todayReceived(id){return state.payments.filter(x=>x.party_id===id&&x.payment_date===today()).reduce((a,x)=>a+Number(x.amount||0),0)}
+function progress(id){const t=totalParty(id);return t?Math.min(100,(receivedParty(id)/t)*100):0}
 function render(){
-  const total=state.invoices.reduce((a,i)=>a+balance(i),0);
-  const td=state.invoices.filter(i=>balance(i)>0&&i.due_date===today()).reduce((a,i)=>a+balance(i),0);
-  const od=state.invoices.filter(i=>balance(i)>0&&i.due_date<today()).reduce((a,i)=>a+balance(i),0);
-  const week=new Date();week.setDate(week.getDate()+7);const ws=week.toISOString().slice(0,10);
-  const wk=state.invoices.filter(i=>balance(i)>0&&i.due_date>=today()&&i.due_date<=ws).reduce((a,i)=>a+balance(i),0);
-  const month=today().slice(0,7);const col=state.payments.filter(x=>String(x.payment_date||"").slice(0,7)===month).reduce((a,x)=>a+Number(x.amount||0),0);
-  $("cReceivable").textContent=money(total);$("cToday").textContent=money(td);$("cOverdue").textContent=money(od);$("cWeek").textContent=money(wk);$("cCollected").textContent=money(col);
-  $("dashRows").innerHTML=state.parties.map(p=>{
-    const out=outstandingParty(p.id),odv=overdueParty(p.id);if(!out)return "";
-    const fi=state.followups.find(x=>x.party_id===p.id);
-    const due=state.invoices.filter(i=>i.party_id===p.id&&balance(i)>0).sort((a,b)=>a.due_date.localeCompare(b.due_date))[0];
-    const st=odv?["Overdue","s-red"]:["Open","s-blue"];
-    return "<tr><td><b>"+esc(p.name)+"</b></td><td class='money'>"+money(out)+"</td><td>"+dmy(due?.due_date)+"</td><td><span class='status "+st[1]+"'>"+st[0]+"</span></td><td>"+dmy(fi?.followup_date)+"</td><td>"+dmy(fi?.next_followup)+"</td><td><button class='secondary btnFollow' data-id='"+p.id+"'>Follow-up</button></td></tr>"
+  const debtorParties=state.parties.filter(p=>opening(p.id));
+  const total=debtorParties.reduce((a,p)=>a+outstandingParty(p.id),0);
+  const tr=debtorParties.reduce((a,p)=>a+todayReceived(p.id),0);
+  const month=today().slice(0,7);
+  const col=state.payments.filter(x=>String(x.payment_date||"").slice(0,7)===month).reduce((a,x)=>a+Number(x.amount||0),0);
+  const brokers=[...new Set(debtorParties.map(p=>p.broker_name||"DIRECT").filter(Boolean))];
+  $("cReceivable").textContent=money(total);$("cParties").textContent=debtorParties.length;$("cBrokers").textContent=brokers.length;$("cToday").textContent=money(tr);$("cCollected").textContent=money(col);
+  $("dashRows").innerHTML=debtorParties.sort((a,b)=>outstandingParty(b.id)-outstandingParty(a.id)).slice(0,20).map(p=>{
+    const o=opening(p.id),out=outstandingParty(p.id),fi=state.followups.find(x=>x.party_id===p.id);
+    const st=o?.status||"Open";const cl=st.toLowerCase().includes("pending")?"s-amber":st.toLowerCase().includes("ledger")?"s-blue":"s-green";
+    return "<tr><td><b>"+esc(p.name)+"</b><br><small class='muted'>"+esc(p.broker_name||"DIRECT")+"</small></td><td class='money'>"+money(out)+"</td><td>"+esc(o?.due_text||"")+"</td><td><span class='status "+cl+"'>"+esc(st||"Open")+"</span></td><td>"+dmy(fi?.followup_date)+"</td><td>"+dmy(fi?.next_followup)+"</td><td><button class='secondary btnFollow' data-id='"+p.id+"'>Follow-up</button></td></tr>"
   }).join("")||"<tr><td colspan='7' class='empty'>No outstanding parties.</td></tr>";
-  renderParties();renderInvoices();renderFollowups();renderPayments();
+  const bf=$("brokerFilter");if(bf){const old=bf.value;bf.innerHTML='<option value="">All Brokers</option>'+brokers.sort().map(x=>'<option>'+esc(x)+'</option>').join("");bf.value=brokers.includes(old)?old:""}
+  renderDebtors();renderParties();renderInvoices();renderFollowups();renderPayments();
+}
+function renderDebtors(){
+  const q=($("debtorSearch")?.value||"").toLowerCase(), broker=$("brokerFilter")?.value||"", status=$("statusFilter")?.value||"";
+  const rows=state.parties.filter(p=>opening(p.id)).filter(p=>{
+    const o=opening(p.id),b=p.broker_name||"DIRECT";
+    return (!q||(p.name+" "+b).toLowerCase().includes(q))&&(!broker||b===broker)&&(!status||(o.status||"")===status);
+  }).sort((a,b)=>outstandingParty(b.id)-outstandingParty(a.id));
+  $("debtorRows").innerHTML=rows.map(p=>{
+    const o=opening(p.id),t=totalParty(p.id),r=receivedParty(p.id),pend=outstandingParty(p.id),pr=progress(p.id),tr=todayReceived(p.id);
+    const st=o.status||"Open";const cl=st.toLowerCase().includes("pending")?"s-amber":st.toLowerCase().includes("ledger")?"s-blue":"s-green";
+    return "<tr><td><b>"+esc(p.broker_name||"DIRECT")+"</b></td><td><b>"+esc(p.name)+"</b></td><td class='money'>"+money(t)+"</td><td>"+esc(o.due_text||"")+"</td><td><span class='status "+cl+"'>"+esc(st)+"</span></td><td class='money'>"+money(r)+"</td><td class='money'>"+money(tr)+"</td><td class='money'>"+money(pend)+"</td><td><div style='min-width:110px'><div style='font-size:11px;font-weight:800'>"+pr.toFixed(1)+"%</div><div style='height:7px;background:#e9edf3;border-radius:9px;overflow:hidden'><div style='height:100%;width:"+pr+"%;background:var(--blue)'></div></div></div></td><td><button class='primary btnPayParty' data-id='"+p.id+"'>+ Payment</button></td></tr>"
+  }).join("")||"<tr><td colspan='10' class='empty'>No debtor records.</td></tr>";
 }
 function renderParties(){
   const q=($("partySearch")?.value||"").toLowerCase();
-  $("partyRows").innerHTML=state.parties.filter(p=>(p.name+" "+(p.phone||"")).toLowerCase().includes(q)).map(p=>"<tr><td><b>"+esc(p.name)+"</b></td><td>"+esc(p.contact||"")+"</td><td>"+esc(p.phone||"")+"</td><td class='money'>"+money(outstandingParty(p.id))+"</td><td class='money'>"+money(overdueParty(p.id))+"</td><td><button class='secondary btnPartyFollow' data-id='"+p.id+"'>Follow-up</button></td></tr>").join("")||"<tr><td colspan='6' class='empty'>No parties.</td></tr>"
+  $("partyRows").innerHTML=state.parties.filter(p=>(p.name+" "+(p.phone||"")).toLowerCase().includes(q)).map(p=>"<tr><td><b>"+esc(p.name)+"</b><br><small class='muted'>"+esc(p.broker_name||"DIRECT")+"</small></td><td>"+esc(p.contact||"")+"</td><td>"+esc(p.phone||"")+"</td><td class='money'>"+money(outstandingParty(p.id))+"</td><td class='money'>"+money(overdueParty(p.id))+"</td><td><button class='secondary btnPartyFollow' data-id='"+p.id+"'>Follow-up</button></td></tr>").join("")||"<tr><td colspan='6' class='empty'>No parties.</td></tr>"
 }
 function renderInvoices(){
   const q=($("invoiceSearch")?.value||"").toLowerCase(), f=$("invoiceFilter")?.value||"";
@@ -190,15 +219,27 @@ function show(v){document.querySelectorAll(".view").forEach(x=>x.classList.remov
 document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>show(b.dataset.view));
 $("logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
 $("loginForm").onsubmit=async e=>{e.preventDefault();$("loginError").textContent="Signing in…";const {data,error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){$("loginError").textContent=error.message;return}if(!data?.session){$("loginError").textContent="Login succeeded but no session was created. Please try again.";return}await boot()};
-$("addParty").onclick=()=>openModal("Add Party",'<div class="grid"><div class="field"><label>Party name *</label><input id="mName"></div><div class="field"><label>Contact person</label><input id="mContact"></div><div class="field"><label>Phone</label><input id="mPhone"></div><div class="field"><label>WhatsApp</label><input id="mWhatsapp"></div></div><div class="actions"><button class="primary" id="modalSave">Save Party</button></div>',async()=>{const {error}=await sb.from("payment_parties").insert({name:$("mName").value.trim(),contact:$("mContact").value.trim(),phone:$("mPhone").value.trim(),whatsapp:$("mWhatsapp").value.trim()});if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()});
+$("addParty").onclick=()=>openModal("Add Party",'<div class="grid"><div class="field"><label>Party name *</label><input id="mName"></div><div class="field"><label>Broker</label><input id="mBroker" placeholder="DIRECT if no broker"></div><div class="field"><label>Broker Phone</label><input id="mBrokerPhone"></div><div class="field"><label>Contact person</label><input id="mContact"></div><div class="field"><label>Phone</label><input id="mPhone"></div><div class="field"><label>WhatsApp</label><input id="mWhatsapp"></div></div><div class="actions"><button class="primary" id="modalSave">Save Party</button></div>',async()=>{const {error}=await sb.from("payment_parties").insert({name:$("mName").value.trim(),contact:$("mContact").value.trim(),phone:$("mPhone").value.trim(),whatsapp:$("mWhatsapp").value.trim(),broker_name:$("mBroker").value.trim()||"DIRECT",broker_phone:$("mBrokerPhone").value.trim()});if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()});
 $("addInvoice").onclick=()=>openModal("Add Invoice",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions()+'</select></div><div class="field"><label>Invoice No. *</label><input id="mInv"></div><div class="field"><label>Invoice Date</label><input id="mInvDate" type="date" value="'+today()+'"></div><div class="field"><label>Amount</label><input id="mAmount" type="number" min="0" step=".01"></div><div class="field"><label>Due Date</label><input id="mDue" type="date"></div></div><div class="actions"><button class="primary" id="modalSave">Save Invoice</button></div>',async()=>{const row={party_id:$("mParty").value,invoice_no:$("mInv").value.trim(),invoice_date:$("mInvDate").value,amount:Number($("mAmount").value||0),due_date:$("mDue").value,received_amount:0};if(!row.party_id||!row.invoice_no||!row.amount){alert("Party, invoice number and amount are required.");return}const {error}=await sb.from("payment_invoices").insert(row);if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()});
 function followModal(pid=""){openModal("Record Follow-up",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions(pid)+'</select></div><div class="field"><label>Follow-up Date</label><input id="mDate" type="date" value="'+today()+'"></div><div class="field"><label>Mode</label><select id="mMode"><option>Call</option><option>WhatsApp</option><option>Visit</option><option>Other</option></select></div><div class="field"><label>Person Contacted</label><input id="mPerson"></div><div class="field"><label>Promise Date</label><input id="mPromiseDate" type="date"></div><div class="field"><label>Promise Amount</label><input id="mPromiseAmount" type="number" min="0" step=".01"></div><div class="field"><label>Next Follow-up</label><input id="mNext" type="date"></div></div><div class="field"><label>Discussion</label><textarea id="mDiscussion" placeholder="What did the customer say?"></textarea></div><div class="actions"><button class="primary" id="modalSave">Save Follow-up</button></div>',async()=>{const row={party_id:$("mParty").value,followup_date:$("mDate").value,mode:$("mMode").value,person_contacted:$("mPerson").value.trim(),discussion:$("mDiscussion").value.trim(),promise_date:$("mPromiseDate").value||null,promise_amount:Number($("mPromiseAmount").value||0),next_followup:$("mNext").value||null};if(!row.party_id){alert("Select a party.");return}const {error}=await sb.from("payment_followups").insert(row);if(error){alert(error.message);return}$("modal").classList.remove("show");await loadAll()})}
 $("addFollowup").onclick=()=>followModal();$("quickFollow").onclick=()=>followModal();
 function paymentModal(invoiceId=""){const ii=inv(invoiceId);openModal("Record Payment",'<div class="grid"><div class="field"><label>Party *</label><select id="mParty">'+partyOptions(ii?.party_id||"")+'</select></div><div class="field"><label>Invoice</label><select id="mInvoice">'+invoiceOptions(ii?.party_id||"",invoiceId)+'</select></div><div class="field"><label>Payment Date</label><input id="mPayDate" type="date" value="'+today()+'"></div><div class="field"><label>Amount</label><input id="mPayAmount" type="number" min="0" step=".01"></div><div class="field"><label>Mode</label><select id="mMode"><option>NEFT</option><option>RTGS</option><option>IMPS</option><option>UPI</option><option>Cheque</option><option>Cash</option><option>Other</option></select></div><div class="field"><label>UTR / Reference</label><input id="mRef"></div></div><div class="field"><label>Remarks</label><input id="mRemarks"></div><div class="actions"><button class="primary" id="modalSave">Save Payment</button></div>',async()=>{const row={party_id:$("mParty").value,invoice_id:$("mInvoice").value||null,payment_date:$("mPayDate").value,amount:Number($("mPayAmount").value||0),mode:$("mMode").value,reference:$("mRef").value.trim(),remarks:$("mRemarks").value.trim()};if(!row.party_id||!row.amount){alert("Party and amount are required.");return}const {error}=await sb.from("payment_payments").insert(row);if(error){alert(error.message);return}if(row.invoice_id){const x=inv(row.invoice_id);const newReceived=Number(x.received_amount||0)+row.amount;const {error:e}=await sb.from("payment_invoices").update({received_amount:newReceived}).eq("id",row.invoice_id);if(e){alert(e.message);return}}$("modal").classList.remove("show");await loadAll()});
 }
+function paymentPartyModal(pid){
+  const p=party(pid);const o=opening(pid);
+  openModal("Record Payment — "+(p?.name||""),'<div class="panel" style="margin:0 0 14px;background:#f8fafc"><b>Broker:</b> '+esc(p?.broker_name||"DIRECT")+' &nbsp; <b>Pending:</b> '+money(outstandingParty(pid))+'</div><div class="grid"><div class="field"><label>Payment Date</label><input id="mPayDate" type="date" value="'+today()+'"></div><div class="field"><label>Amount Received *</label><input id="mPayAmount" type="number" min="0" step=".01"></div><div class="field"><label>Mode</label><select id="mMode"><option>NEFT</option><option>RTGS</option><option>IMPS</option><option>UPI</option><option>Cheque</option><option>Cash</option><option>Other</option></select></div><div class="field"><label>UTR / Reference</label><input id="mRef"></div></div><div class="field"><label>Remarks</label><input id="mRemarks"></div><div class="actions"><button class="primary" id="modalSave">Save Payment</button></div>',async()=>{
+    const amount=Number($("mPayAmount").value||0);if(!amount){alert("Enter the received amount.");return}
+    if(amount>outstandingParty(pid)){if(!confirm("This is more than the current pending amount. Save anyway?"))return}
+    const row={party_id:pid,invoice_id:null,payment_date:$("mPayDate").value,amount,mode:$("mMode").value,reference:$("mRef").value.trim(),remarks:$("mRemarks").value.trim()};
+    const {error}=await sb.from("payment_payments").insert(row);if(error){alert(error.message);return}
+    $("modal").classList.remove("show");await loadAll()
+  })
+}
 $("addPayment").onclick=()=>paymentModal();
+$("refreshDebtors").onclick=()=>loadAll();
+$("debtorSearch").oninput=renderDebtors;$("brokerFilter").onchange=renderDebtors;$("statusFilter").onchange=renderDebtors;
 $("partySearch").oninput=renderParties;$("invoiceSearch").oninput=renderInvoices;$("invoiceFilter").onchange=renderInvoices;$("followSearch").oninput=renderFollowups;$("followFilter").onchange=renderFollowups;$("paymentSearch").oninput=renderPayments;
-document.addEventListener("click",e=>{const f=e.target.closest(".btnFollow,.btnPartyFollow");if(f)followModal(f.dataset.id);const p=e.target.closest(".btnPay");if(p)paymentModal(p.dataset.id)});
+document.addEventListener("click",e=>{const f=e.target.closest(".btnFollow,.btnPartyFollow");if(f)followModal(f.dataset.id);const p=e.target.closest(".btnPay");if(p)paymentModal(p.dataset.id);const pp=e.target.closest(".btnPayParty");if(pp)paymentPartyModal(pp.dataset.id)});
 sb.auth.onAuthStateChange(()=>setTimeout(boot,0));
 boot();
 })();
