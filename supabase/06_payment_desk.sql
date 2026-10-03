@@ -16,6 +16,8 @@ create table if not exists public.payment_parties (
   contact text,
   phone text,
   whatsapp text,
+  broker_name text,
+  broker_phone text,
   created_at timestamptz not null default now()
 );
 
@@ -110,3 +112,33 @@ grant select,insert,update,delete on public.payment_users,public.payment_parties
 -- After creating the worker's account in Supabase Authentication,
 -- replace WORKER-USER-UUID below with that user's Auth UUID:
 -- insert into public.payment_users(user_id) values ('WORKER-USER-UUID');
+
+
+-- Current Tally/Excel debtor-line-up support.
+alter table public.payment_parties add column if not exists broker_name text;
+alter table public.payment_parties add column if not exists broker_phone text;
+
+create table if not exists public.payment_opening_balances (
+  id uuid primary key default gen_random_uuid(),
+  party_id uuid not null unique references public.payment_parties(id) on delete cascade,
+  opening_date date not null default current_date,
+  total_amount numeric(14,2) not null default 0,
+  received_amount numeric(14,2) not null default 0,
+  due_text text,
+  status text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_payment_opening_party on public.payment_opening_balances(party_id);
+alter table public.payment_opening_balances enable row level security;
+
+drop policy if exists payment_opening_access on public.payment_opening_balances;
+create policy payment_opening_access on public.payment_opening_balances
+for all to authenticated using (
+  exists(select 1 from public.payment_users u where u.user_id=auth.uid() and u.active=true)
+) with check (
+  exists(select 1 from public.payment_users u where u.user_id=auth.uid() and u.active=true)
+);
+
+grant select,insert,update,delete on public.payment_opening_balances to authenticated;
