@@ -56,7 +56,6 @@
 
     return "*PURCHASE DETAILS*\n\n" +
       "Supplier Name: " + supplier + "\n" +
-      "Supplier No.: " + number + "\n" +
       "Date: " + date + "\n" +
       "G.R. No.: " + gr + "\n" +
       "Truck No.: " + truck + "\n" +
