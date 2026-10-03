@@ -76,45 +76,7 @@
   </div>
 </nav>
 
-<script>
-(function(){
-  function initSalesDeskSidebar(){
-    const nav=document.getElementById('salesdeskSidebar');
-    if(!nav) return;
 
-    nav.querySelectorAll('.nav-group[data-group]').forEach(function(group){
-      const title=group.querySelector('.nav-title');
-      if(!title) return;
-
-      const key='salesdesk_sidebar_'+group.dataset.group;
-      const closed=localStorage.getItem(key)==='closed';
-
-      group.classList.toggle('is-collapsed',closed);
-      title.setAttribute('aria-expanded',closed?'false':'true');
-
-      if(title.dataset.toggleBound==='1') return;
-      title.dataset.toggleBound='1';
-
-      title.addEventListener('click',function(event){
-        event.preventDefault();
-        event.stopPropagation();
-
-        const nowClosed=!group.classList.contains('is-collapsed');
-        group.classList.toggle('is-collapsed',nowClosed);
-        title.setAttribute('aria-expanded',nowClosed?'false':'true');
-        localStorage.setItem(key,nowClosed?'closed':'open');
-      });
-    });
-  }
-
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',initSalesDeskSidebar);
-  }else{
-    initSalesDeskSidebar();
-  }
-  window.addEventListener('load',initSalesDeskSidebar);
-})();
-</script>
 
 <section id="dashboard"><div class="metrics"><div class="metric"><span>All sales orders</span><strong id="mOrders">0</strong></div><div class="metric"><span>Open orders</span><strong id="mOpen">0</strong></div><div class="metric"><span>Total ordered</span><strong id="mOrdered">0</strong></div><div class="metric"><span>Outstanding quantity</span><strong id="mBalance">0</strong></div></div><div class="panel"><h2>Order fulfilment snapshot <span class="tag">Quantity in QTL</span></h2><div class="tablewrap"><table><thead><tr><th>SO No.</th><th>Order date</th><th>Party</th><th>Items</th><th>Ordered</th><th>Dispatched</th><th>Balance</th><th>Status</th></tr></thead><tbody id="dashRows"></tbody></table></div></div><div class="panel"><h2>Quick guidance</h2><div class="grid"><div><b>1. Create masters</b><p class="muted small">Add parties and products with default prices first.</p></div><div><b>2. Record an SO</b><p class="muted small">Add one or more products and set a rate for each line.</p></div><div><b>3. Enter dispatch</b><p class="muted small">Choose an SO; its remaining product balances load automatically.</p></div><div><b>4. Review party</b><p class="muted small">Search a party to see item-wise balance and applicable rates.</p></div></div></div></section>
 <section id="parties" class="hidden"><div class="panel"><h2>Add new party</h2><form id="partyForm"><div class="grid"><div class="field"><label>Party code</label><input id="partyCode" readonly></div><div class="field"><label>Party name *</label><input id="partyName" required placeholder="Enter legal / trading name"></div><div class="field"><label>Contact person</label><input id="partyContact" placeholder="Optional"></div><div class="field"><label>Phone</label><input id="partyPhone" placeholder="Optional"></div><div class="field"><label>GSTIN</label><input id="partyGST" maxlength="15" placeholder="Optional"></div><div class="field"><label>Address</label><input id="partyAddress" placeholder="Optional"></div></div><div class="actions"><button class="primary">Save party</button><button type="reset" class="secondary" data-act="setPartyCode">Clear</button></div></form></div><div class="panel"><h2>Party directory</h2><div class="filters"><input id="partyMasterSearch" placeholder="Search party, code, phone"></div><div class="tablewrap"><table><thead><tr><th>Code</th><th>Party name</th><th>Contact</th><th>Phone</th><th>GSTIN</th><th>Action</th></tr></thead><tbody id="partyMasterRows"></tbody></table></div></div></section>
