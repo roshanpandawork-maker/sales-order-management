@@ -32,6 +32,15 @@
   nav.querySelectorAll('.nav-group').forEach((group,i)=>{
     const title=group.querySelector('.nav-title');
     if(!title)return;
+    let items=group.querySelector(':scope > .nav-items');
+    if(!items){
+      items=document.createElement('div');
+      items.className='nav-items';
+      Array.from(group.children).forEach(child=>{
+        if(child!==title) items.appendChild(child);
+      });
+      group.appendChild(items);
+    }
     const key='salesdesk_nav_'+(group.dataset.group||i);
     if(localStorage.getItem(key)==='collapsed')group.classList.add('collapsed');
     title.setAttribute('role','button');
