@@ -89,36 +89,78 @@ function draw(){
     s.innerHTML='<div class="panel"><div class="emptybox">Run <b>supabase/05_purchase_whatsapp.sql</b> first.<br>'+escp(S.err)+'</div></div>';
     return;
   }
-  const nav='<div class="actions" style="margin-top:0;margin-bottom:14px">'+
-    '<button class="'+(S.view==="entry"?"primary":"secondary")+'" data-pview="entry">Purchase Message</button>'+
-    '<button class="'+(S.view==="suppliers"?"primary":"secondary")+'" data-pview="suppliers">Supplier Master</button>'+
-    '<button class="'+(S.view==="history"?"primary":"secondary")+'" data-pview="history">Message History</button></div>';
+  const nav='<div class="purchaseNav">'+
+    '<button class="'+(S.view==="entry"?"primary":"secondary")+'" data-pview="entry">✚ New Message</button>'+
+    '<button class="'+(S.view==="suppliers"?"primary":"secondary")+'" data-pview="suppliers">👥 Suppliers</button>'+
+    '<button class="'+(S.view==="history"?"primary":"secondary")+'" data-pview="history">🕘 History</button></div>';
   let body=nav;
   if(S.view==="entry"){
-    body+='<div class="grid">'+
-      '<div class="panel" style="margin:0"><h2>Purchase details</h2>'+
-      '<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
-      '<div class="field"><label>Supplier *</label><select id="puSupplier">'+supplierOpts()+'</select></div>'+
-      '<div class="field"><label>Company name</label><input id="puCompany" value="'+escp(localStorage.getItem("sd_purchase_company")||"")+'" placeholder="Your company name"></div>'+
-      '<div class="field"><label>Date *</label><input id="puDate" type="date" value="'+todayp()+'"></div>'+
-      '<div class="field"><label>G.R. No.</label><input id="puGR" placeholder="GR-0001"></div>'+
-      '<div class="field"><label>Truck No.</label><input id="puTruck" placeholder="OD02AB1234"></div>'+
-      '<div class="field"><label>Bags</label><input id="puBags" type="number" min="0" step="1"></div>'+
-      '<div class="field"><label>Weight (MT)</label><input id="puWeight" type="number" min="0" step=".001"></div>'+
-      '<div class="field"><label>Rate (₹)</label><input id="puRate" type="number" min="0" step=".01"></div>'+
-      '<div class="field"><label>Oil %</label><input id="puOil" type="number" min="0" step=".01"></div>'+
-      '<div class="field"><label>FFA</label><input id="puFFA" placeholder="OK"></div>'+
-      '<div class="field" style="grid-column:1/-1"><label>Remarks</label><input id="puRemarks" placeholder="Optional"></div>'+
-      '</div>'+
-      '<div class="actions"><button class="primary" data-savepurchase>Save & prepare WhatsApp</button><button class="secondary" data-clearpurchase>Clear</button></div></div>'+
-      '<div class="panel" style="margin:0"><h2>Message preview</h2><textarea id="puPreview" readonly style="min-height:310px;resize:vertical"></textarea>'+
-      '<div class="actions"><button class="primary" data-wa>📱 Open WhatsApp</button><button class="secondary" data-copy>Copy message</button></div>'+
-      '<p class="small muted">WhatsApp opens with the message prepared. You still press Send yourself.</p></div></div>';
+    body+=`
+      <div class="purchaseHero">
+        <div><div class="eyebrow">PURCHASE COMMUNICATION</div><h2>Send purchase details to supplier</h2><p>Enter the truck receipt details once. The WhatsApp message updates automatically.</p></div>
+        <div class="heroBadge">WhatsApp Ready</div>
+      </div>
+      <div class="purchaseLayout">
+        <div class="panel purchaseForm">
+          <div class="sectionHead"><div><h2>1. Purchase details</h2><span>Basic truck and quality information</span></div><span class="stepNo">01</span></div>
+          <div class="formSection">
+            <div class="sectionTitle">Supplier</div>
+            <div class="grid two">
+              <div class="field"><label>Supplier *</label><select id="puSupplier">${supplierOpts()}</select></div>
+              <div class="field"><label>Company name</label><input id="puCompany" value="${escp(localStorage.getItem("sd_purchase_company")||"")}" placeholder="Your company name"></div>
+            </div>
+          </div>
+          <div class="formSection">
+            <div class="sectionTitle">Truck / receipt</div>
+            <div class="grid three">
+              <div class="field"><label>Date *</label><input id="puDate" type="date" value="${todayp()}"></div>
+              <div class="field"><label>G.R. No.</label><input id="puGR" placeholder="GR-0001"></div>
+              <div class="field"><label>Truck No.</label><input id="puTruck" placeholder="OD02AB1234"></div>
+              <div class="field"><label>Bags</label><input id="puBags" type="number" min="0" step="1" placeholder="0"></div>
+              <div class="field"><label>Weight (MT)</label><input id="puWeight" type="number" min="0" step=".001" placeholder="0.000"></div>
+              <div class="field"><label>Rate (₹ / MT)</label><input id="puRate" type="number" min="0" step=".01" placeholder="0.00"></div>
+            </div>
+          </div>
+          <div class="formSection">
+            <div class="sectionTitle">Quality</div>
+            <div class="grid two">
+              <div class="field"><label>Oil %</label><input id="puOil" type="number" min="0" step=".01" placeholder="19.50"></div>
+              <div class="field"><label>FFA</label><input id="puFFA" placeholder="OK"></div>
+            </div>
+          </div>
+          <div class="formSection">
+            <div class="sectionTitle">Remarks <span>Optional</span></div>
+            <div class="field"><input id="puRemarks" placeholder="Shortage, quality note, payment note, etc."></div>
+          </div>
+          <div class="actions purchaseActions"><button class="primary" data-savepurchase>💾 Save message</button><button class="secondary" data-clearpurchase>Clear form</button></div>
+        </div>
+        <div class="panel purchasePreview">
+          <div class="sectionHead"><div><h2>2. WhatsApp preview</h2><span>What the supplier will receive</span></div><span class="liveDot">● LIVE</span></div>
+          <div class="waCard">
+            <div class="waTop"><span>WhatsApp message</span><span>Preview</span></div>
+            <textarea id="puPreview" readonly></textarea>
+          </div>
+          <div class="previewActions"><button class="primary" data-wa>📱 Open WhatsApp</button><button class="secondary" data-copy>Copy</button></div>
+          <div class="tipBox"><b>How it works</b><br>Save the message for your records, then open WhatsApp. The message will already be filled in; you press <b>Send</b>.</div>
+        </div>
+      </div>
+      <style>
+        .purchaseNav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .purchaseHero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 24px;margin-bottom:14px;border:1px solid #dce3ec;border-radius:14px;background:linear-gradient(135deg,#f8fafc,#eef5ff)}
+        .purchaseHero h2{margin:4px 0 6px}.purchaseHero p{margin:0;color:#667085}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;color:#315fe9}.heroBadge{padding:8px 12px;border-radius:999px;background:#e9f7ef;color:#147a42;font-size:12px;font-weight:700;white-space:nowrap}
+        .purchaseLayout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:14px}.purchaseForm,.purchasePreview{margin:0}
+        .sectionHead{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e8edf3;padding-bottom:13px;margin-bottom:18px}.sectionHead h2{margin:0 0 3px}.sectionHead span{font-size:12px;color:#7a8797}.stepNo{font-weight:800;font-size:12px!important;color:#315fe9!important;background:#edf3ff;padding:7px 9px;border-radius:8px}.liveDot{font-size:11px!important;font-weight:800;color:#16834b!important}
+        .formSection{padding:0 0 18px;margin-bottom:18px;border-bottom:1px solid #eef1f5}.formSection:last-of-type{border-bottom:0}.sectionTitle{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;color:#475467}.sectionTitle span{font-weight:500;text-transform:none;letter-spacing:0;color:#98a2b3;margin-left:5px}
+        .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+        .purchaseActions{margin-top:4px}.previewActions{display:flex;gap:8px;margin-top:12px}.waCard{border:1px solid #d9e1ea;border-radius:12px;overflow:hidden;background:#f5f7fa}.waTop{display:flex;justify-content:space-between;padding:10px 12px;background:#eef2f6;font-size:11px;font-weight:700;color:#667085}.waCard textarea{display:block;width:100%;min-height:350px;border:0;border-radius:0;background:#fff;padding:16px;font:13px/1.65 inherit;resize:vertical;box-sizing:border-box;outline:none}.tipBox{margin-top:14px;padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e7ebf0;color:#667085;font-size:12px;line-height:1.5}.tipBox b{color:#344054}
+        @media(max-width:900px){.purchaseLayout{grid-template-columns:1fr}.grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:600px){.purchaseHero{align-items:flex-start;flex-direction:column}.grid.two,.grid.three{grid-template-columns:1fr}.purchaseHero{padding:18px}.purchasePreview .waCard textarea{min-height:280px}}
+      </style>`;
   }else if(S.view==="suppliers"){
-    body+='<div class="panel"><h2>Purchase suppliers <button class="primary" data-newsupplier>+ Add supplier</button></h2>'+
+    body+='<div class="panel"><div class="sectionHead"><div><h2>Purchase suppliers</h2><span>Separate from Sales customers and parties</span></div><button class="primary" data-newsupplier>+ Add supplier</button></div>'+
       tbl(["Supplier","WhatsApp / Mobile","Contact","GSTIN","Status",""],S.suppliers.map(x=>'<tr><td><b>'+escp(x.name)+'</b></td><td>'+escp(x.mobile||"")+'</td><td>'+escp(x.contact||"")+'</td><td>'+escp(x.gstin||"")+'</td><td><span class="pill '+(x.active===false?"cancel":"")+'">'+(x.active===false?"Inactive":"Active")+'</span></td><td><button class="secondary btnsm" data-editsupplier="'+escp(x.id)+'">Edit</button> <button class="danger btnsm" data-delsupplier="'+escp(x.id)+'">Delete</button></td></tr>'))+'</div>';
   }else{
-    body+='<div class="panel"><h2>Purchase WhatsApp history</h2>'+
+    body+='<div class="panel"><div class="sectionHead"><div><h2>Purchase WhatsApp history</h2><span>Last 100 saved purchase messages</span></div></div>'+
       tbl(["Date","Supplier","GR No.","Truck","Weight","Rate","Message",""],S.messages.map(x=>'<tr><td>'+escp(x.date)+'</td><td><b>'+escp(x.supplier_name||"")+'</b></td><td>'+escp(x.gr_no||"")+'</td><td>'+escp(x.truck_no||"")+'</td><td>'+escp(x.weight||"")+'</td><td>'+moneyp(x.rate)+'</td><td><button class="secondary btnsm" data-viewmsg="'+escp(x.id)+'">View</button></td><td><button class="danger btnsm" data-delmsg="'+escp(x.id)+'">Delete</button></td></tr>'))+'</div>';
   }
   s.innerHTML=body;
