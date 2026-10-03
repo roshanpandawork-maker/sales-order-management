@@ -1,131 +1,309 @@
-// Purchase WhatsApp: separate supplier master + purchase message generator.
-// Does not use SalesDesk customer/party/order data.
+// SalesDesk Purchase WhatsApp module
+// Separate supplier master. Supports saved suppliers OR manual supplier name/number.
 (function(){
-"use strict";
-const $=id=>document.getElementById(id);
-const S={suppliers:[],messages:[],loaded:false,view:"entry",err:""};
-const SUP="purchase_suppliers", MSG="purchase_messages";
-const escp=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function numbersOf(s){return String(s||"").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean)}
-function firstPhone(s){return numbersOf(s)[0]||""}
-function numberOptions(s){return numbersOf(s).map((n,i)=>'<option value="'+escp(n)+'">'+escp(n)+(i===0?" · Primary":"")+'</option>').join("")}
-const moneyp=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-const todayp=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+  "use strict";
 
-function messageText(){
-  const supplier=$("puSupplier")?.value.trim()||"";
-  const supplierObj=selectedSupplier();
-  const supplierNo=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplierObj?.mobile||"");
-  const company=$("puCompany")?.value.trim()||"";
-  const date=$("puDate")?.value||"";
-  const gr=$("puGR")?.value.trim()||"";
-  const truck=$("puTruck")?.value.trim()||"";
-  const bags=$("puBags")?.value||"";
-  const weight=$("puWeight")?.value||"";
-  const rate=$("puRate")?.value||"";
-  const oil=$("puOil")?.value||"";
-  const ffa=$("puFFA")?.value||"";
-  const remarks=$("puRemarks")?.value.trim()||"";
-  return "*PURCHASE DETAILS*\n\n"+
-    "Supplier Name: "+supplier+"\n"+
-    "Supplier No.: "+supplierNo+"\n"+
-    "Date: "+date+"\n"+
-    "G.R. No.: "+gr+"\n"+
-    "Truck No.: "+truck+"\n"+
-    "Bags: "+bags+"\n"+
-    "Weight: "+weight+" QTL\n"+
-    "Rate: "+(rate?moneyp(rate):"")+"\n"+
-    "Oil: "+(oil?oil+"%":"")+"\n"+
-    "FFA: "+ffa+"\n"+
-    (remarks?"Remarks: "+remarks+"\n":"")+
-    (company?"\n*"+company+"*":"");
-}
-function phone(s){
-  let x=String(s||"").replace(/\D/g,"");
-  if(x.length===10)x="91"+x;
-  return x;
-}
-function supplierOpts(){
-  return S.suppliers.filter(x=>x.active!==false)
-    .sort((a,b)=>String(a.name).localeCompare(String(b.name)))
-    .map(x=>'<option value="'+escp(x.name)+'"></option>').join("");
-}
-function selectedSupplier(){
-  const v=($("puSupplier")?.value||"").trim();
-  return S.suppliers.find(x=>String(x.name||"").toLowerCase()===v.toLowerCase());
-}
-function tbl(h,rows){
-  return '<div class="tablewrap"><table><thead><tr>'+h.map(x=>"<th>"+x+"</th>").join("")+"</tr></thead><tbody>"+(rows.join("")||'<tr><td class="empty" colspan="'+h.length+'">No records</td></tr>')+"</tbody></table></div>";
-}
-async function load(){
-  const [a,b]=await Promise.all([
-    supabaseClient.from(SUP).select("*").order("name"),
-    supabaseClient.from(MSG).select("*").order("created_at",{ascending:false}).limit(100)
-  ]);
-  S.err=a.error?.message||b.error?.message||"";
-  if(!S.err){S.suppliers=a.data||[];S.messages=b.data||[];S.loaded=true}
-  draw();
-}
-function buildSupplierModal(id){
-  const e=S.suppliers.find(x=>x.id===id)||{};
-  openModal(id?"Edit supplier":"Add supplier",
-    fld("psName","Supplier name *",e.name)+
-    '<div class="field"><label>WhatsApp numbers</label><textarea id="psMobile" rows="3" placeholder="One number per line\n9876543210\n9123456789">'+escp(String(e.mobile||"").split(/[,;]+/).join("\n"))+'</textarea><div class="small muted">Add more numbers on separate lines. The first number is the primary number.</div></div>'+
-    fld("psContact","Contact person",e.contact)+
-    fld("psGST","GSTIN",e.gstin)+
-    fld("psAddress","Address",e.address)+
-    '<div class="field"><label>Status</label><select id="psActive"><option value="1" '+(e.active===false?"":"selected")+'>Active</option><option value="0" '+(e.active===false?"selected":"")+'>Inactive</option></select></div>',
-    async()=>{
-      const name=$("psName").value.trim(),mobile=String($("psMobile").value||"").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean).join(",");
-      if(!name)return alert("Supplier name is required."),false;
-      const row={name,mobile,contact:$("psContact").value.trim(),gstin:$("psGST").value.trim().toUpperCase(),address:$("psAddress").value.trim(),active:$("psActive").value==="1"};
-      if(id){
-        const r=await supabaseClient.from(SUP).update(row).eq("id",id);
-        if(r.error){alert(r.error.message);return false}
-      }else{
-        const r=await supabaseClient.from(SUP).insert(row);
-        if(r.error){alert(r.error.message);return false}
-      }
-      await load();
-    });
-}
-function clearEntry(){
-  ["puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>{if($(id))$(id).value=""});
-  if($("puDate"))$("puDate").value=todayp();
-  if($("puSupplier"))$("puSupplier").value="";
-  updatePreview();
-}
-function draw(){
-  const s=$("purchase");if(!s)return;
-  if(S.err){
-    s.innerHTML='<div class="panel"><div class="emptybox">Run <b>supabase/05_purchase_whatsapp.sql</b> first.<br>'+escp(S.err)+'</div></div>';
-    return;
+  const $ = id => document.getElementById(id);
+  const S = { suppliers: [], messages: [], loaded:false, view:"entry", err:"" };
+  const SUP = "purchase_suppliers";
+  const MSG = "purchase_messages";
+
+  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+
+  const nums = v => String(v || "").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
+  const firstNum = v => nums(v)[0] || "";
+  const money = v => "₹" + Number(v || 0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const today = () => new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+
+  function supplierByInput(){
+    const value = ($( "puSupplier" )?.value || "").trim().toLowerCase();
+    if(!value) return null;
+    return S.suppliers.find(x => String(x.name || "").trim().toLowerCase() === value) || null;
   }
-  const nav='<div class="purchaseNav">'+
-    '<button class="'+(S.view==="entry"?"primary":"secondary")+'" data-pview="entry">✚ New Message</button>'+
-    '<button class="'+(S.view==="suppliers"?"primary":"secondary")+'" data-pview="suppliers">👥 Suppliers</button>'+
-    '<button class="'+(S.view==="history"?"primary":"secondary")+'" data-pview="history">🕘 History</button></div>';
-  let body=nav;
-  if(S.view==="entry"){
-    body+=`
+
+  function supplierList(){
+    return S.suppliers
+      .filter(x=>x.active!==false)
+      .sort((a,b)=>String(a.name).localeCompare(String(b.name)))
+      .map(x=>'<option value="'+esc(x.name)+'"></option>')
+      .join("");
+  }
+
+  function numberOptions(supplier){
+    const list = nums(supplier?.mobile);
+    return '<option value="">Select saved number</option>' +
+      list.map((n,i)=>'<option value="'+esc(n)+'">'+esc(n)+(i===0?' · Primary':'')+'</option>').join("");
+  }
+
+  function messageText(){
+    const supplier = ($( "puSupplier" )?.value || "").trim();
+    const savedNumber = $( "puNumber" )?.value || "";
+    const manualNumber = ($( "puManualNumber" )?.value || "").trim();
+    const master = supplierByInput();
+    const number = manualNumber || savedNumber || firstNum(master?.mobile);
+    const company = ($( "puCompany" )?.value || "").trim();
+    const date = $( "puDate" )?.value || "";
+    const gr = ($( "puGR" )?.value || "").trim();
+    const truck = ($( "puTruck" )?.value || "").trim();
+    const bags = $( "puBags" )?.value || "";
+    const weight = $( "puWeight" )?.value || "";
+    const rate = $( "puRate" )?.value || "";
+    const oil = $( "puOil" )?.value || "";
+    const ffa = ($( "puFFA" )?.value || "").trim();
+    const remarks = ($( "puRemarks" )?.value || "").trim();
+
+    return "*PURCHASE DETAILS*\n\n" +
+      "Supplier Name: " + supplier + "\n" +
+      "Supplier No.: " + number + "\n" +
+      "Date: " + date + "\n" +
+      "G.R. No.: " + gr + "\n" +
+      "Truck No.: " + truck + "\n" +
+      "Bags: " + bags + "\n" +
+      "Weight: " + weight + " QTL\n" +
+      "Rate: " + (rate ? money(rate) + " / QTL" : "") + "\n" +
+      "Oil: " + (oil ? oil + "%" : "") + "\n" +
+      "FFA: " + ffa + "\n" +
+      (remarks ? "Remarks: " + remarks + "\n" : "") +
+      (company ? "\n*" + company + "*" : "");
+  }
+
+  function updatePreview(){
+    const preview = $( "puPreview" );
+    if(preview) preview.value = messageText();
+    const company = $( "puCompany" );
+    if(company) localStorage.setItem("sd_purchase_company", company.value);
+  }
+
+  function syncSupplier(){
+    const master = supplierByInput();
+    const number = $( "puNumber" );
+    if(!number) return;
+
+    number.innerHTML = numberOptions(master);
+
+    const manual = $( "puManualNumber" );
+    if(master && manual && !manual.value) manual.value = firstNum(master.mobile);
+    if(master && nums(master.mobile).length===1) number.value = firstNum(master.mobile);
+
+    updatePreview();
+  }
+
+  function clearEntry(){
+    ["puSupplier","puManualNumber","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>{
+      if($(id)) $(id).value="";
+    });
+    if($( "puNumber" )) $( "puNumber" ).innerHTML='<option value="">Select saved number</option>';
+    if($( "puCompany" )) $( "puCompany" ).value=localStorage.getItem("sd_purchase_company") || "";
+    if($( "puDate" )) $( "puDate" ).value=today();
+    updatePreview();
+  }
+
+  function table(headers, rows){
+    return '<div class="tablewrap"><table><thead><tr>' +
+      headers.map(h=>'<th>'+h+'</th>').join("") +
+      '</tr></thead><tbody>' +
+      (rows.length ? rows.join("") : '<tr><td class="empty" colspan="'+headers.length+'">No records</td></tr>') +
+      '</tbody></table></div>';
+  }
+
+  async function load(){
+    try{
+      const [a,b] = await Promise.all([
+        supabaseClient.from(SUP).select("*").order("name"),
+        supabaseClient.from(MSG).select("*").order("created_at",{ascending:false}).limit(100)
+      ]);
+      S.err = a.error?.message || b.error?.message || "";
+      if(!S.err){
+        S.suppliers = a.data || [];
+        S.messages = b.data || [];
+        S.loaded = true;
+      }
+    }catch(e){
+      S.err = e?.message || String(e);
+    }
+    draw();
+  }
+
+  function supplierModal(id){
+    const existing = S.suppliers.find(x=>x.id===id) || {};
+    openModal(
+      id ? "Edit purchase supplier" : "Add purchase supplier",
+      fld("psName","Supplier name *",existing.name) +
+      '<div class="field"><label>WhatsApp numbers</label>' +
+        '<textarea id="psMobile" rows="3" placeholder="9876543210\n9123456789">'+
+          esc(nums(existing.mobile).join("\n"))+
+        '</textarea><div class="small muted">Enter multiple numbers on separate lines. First number is primary.</div></div>' +
+      fld("psContact","Contact person",existing.contact) +
+      fld("psGST","GSTIN",existing.gstin) +
+      fld("psAddress","Address",existing.address) +
+      '<div class="field"><label>Status</label><select id="psActive">' +
+        '<option value="1" '+(existing.active===false?"":"selected")+'>Active</option>' +
+        '<option value="0" '+(existing.active===false?"selected":"")+'>Inactive</option>' +
+      '</select></div>',
+      async()=>{
+        const name = ($( "psName" )?.value || "").trim();
+        const mobile = nums($( "psMobile" )?.value || "").join(",");
+        if(!name){ alert("Supplier name is required."); return false; }
+
+        const row = {
+          name, mobile,
+          contact:($( "psContact" )?.value || "").trim(),
+          gstin:( $( "psGST" )?.value || "" ).trim().toUpperCase(),
+          address:( $( "psAddress" )?.value || "" ).trim(),
+          active:$( "psActive" )?.value === "1"
+        };
+
+        const r = id
+          ? await supabaseClient.from(SUP).update(row).eq("id",id)
+          : await supabaseClient.from(SUP).insert(row);
+
+        if(r.error){ alert(r.error.message); return false; }
+        await load();
+      }
+    );
+  }
+
+  async function savePurchase(){
+    const supplierName = ($( "puSupplier" )?.value || "").trim();
+    const master = supplierByInput();
+    const manualNumber = ($( "puManualNumber" )?.value || "").trim();
+    const savedNumber = $( "puNumber" )?.value || "";
+    const number = manualNumber || savedNumber || firstNum(master?.mobile);
+
+    if(!supplierName){ alert("Enter a supplier name."); return; }
+    if(!number){ alert("Enter or select a supplier WhatsApp number."); return; }
+
+    const row = {
+      supplier_id:master?.id || null,
+      supplier_name:supplierName,
+      mobile:number,
+      date:$( "puDate" )?.value || today(),
+      gr_no:($( "puGR" )?.value || "").trim(),
+      truck_no:($( "puTruck" )?.value || "").trim(),
+      bags:Number($( "puBags" )?.value || 0),
+      weight:Number($( "puWeight" )?.value || 0),
+      rate:Number($( "puRate" )?.value || 0),
+      oil:Number($( "puOil" )?.value || 0),
+      ffa:($( "puFFA" )?.value || "").trim(),
+      remarks:($( "puRemarks" )?.value || "").trim(),
+      message:messageText()
+    };
+
+    const r = await supabaseClient.from(MSG).insert(row).select().single();
+    if(r.error){ alert(r.error.message); return; }
+
+    S.messages.unshift(r.data);
+    alert("Purchase message saved.");
+  }
+
+  function cleanPhone(value){
+    let p=String(value||"").replace(/\D/g,"");
+    if(p.length===10) p="91"+p;
+    return p;
+  }
+
+  function openWhatsApp(){
+    const supplierName = ($( "puSupplier" )?.value || "").trim();
+    const master = supplierByInput();
+    const number = ($( "puManualNumber" )?.value || "").trim() ||
+      $( "puNumber" )?.value || firstNum(master?.mobile);
+
+    if(!supplierName){ alert("Enter a supplier name."); return; }
+    if(!number){ alert("Enter or select a WhatsApp number."); return; }
+
+    const phone=cleanPhone(number);
+    if(phone.length<12){ alert("Please enter a valid WhatsApp number."); return; }
+
+    window.open(
+      "https://wa.me/"+phone+"?text="+encodeURIComponent(messageText()),
+      "_blank",
+      "noopener"
+    );
+  }
+
+  function viewMessage(id){
+    const x=S.messages.find(m=>m.id===id);
+    if(!x) return;
+
+    openModal(
+      "Purchase WhatsApp · "+esc(x.supplier_name),
+      '<textarea readonly style="min-height:320px;resize:vertical">'+esc(x.message||"")+'</textarea>'+
+      '<div class="small muted" style="margin-top:8px">Number: '+esc(x.mobile||"")+'</div>',
+      ()=>true
+    );
+  }
+
+  async function deleteRow(tableName,id,prompt){
+    if(!confirm(prompt)) return;
+    const r=await supabaseClient.from(tableName).delete().eq("id",id);
+    if(r.error){ alert(r.error.message); return; }
+    await load();
+  }
+
+  function draw(){
+    const root=$( "purchase" );
+    if(!root) return;
+
+    if(S.err){
+      root.innerHTML='<div class="panel"><div class="emptybox">Purchase module could not load.<br>'+esc(S.err)+'</div></div>';
+      return;
+    }
+
+    const nav =
+      '<div class="purchaseNav">' +
+      '<button class="'+(S.view==="entry"?"primary":"secondary")+'" data-pview="entry">✚ New Message</button>' +
+      '<button class="'+(S.view==="suppliers"?"primary":"secondary")+'" data-pview="suppliers">👥 Suppliers</button>' +
+      '<button class="'+(S.view==="history"?"primary":"secondary")+'" data-pview="history">🕘 History</button>' +
+      '</div>';
+
+    let body=nav;
+
+    if(S.view==="entry"){
+      body += `
       <div class="purchaseHero">
-        <div><div class="eyebrow">PURCHASE COMMUNICATION</div><h2>Send purchase details to supplier</h2><p>Enter the truck receipt details once. The WhatsApp message updates automatically.</p></div>
+        <div><div class="eyebrow">PURCHASE COMMUNICATION</div><h2>Send purchase details to supplier</h2><p>Enter the details once. The WhatsApp message updates live.</p></div>
         <div class="heroBadge">WhatsApp Ready</div>
       </div>
+
       <div class="purchaseLayout">
         <div class="panel purchaseForm">
-          <div class="sectionHead"><div><h2>1. Purchase details</h2><span>Basic truck and quality information</span></div><span class="stepNo">01</span></div>
+          <div class="sectionHead"><div><h2>1. Purchase details</h2><span>Supplier, truck and quality information</span></div><span class="stepNo">01</span></div>
+
           <div class="formSection">
             <div class="sectionTitle">Supplier</div>
             <div class="grid two">
-              <div class="field"><label>Supplier *</label><input id="puSupplier" list="purchaseSupplierList" autocomplete="off" placeholder="Select or type supplier name"><datalist id="purchaseSupplierList">${supplierOpts()}</datalist><div class="small muted">Select from saved suppliers or type/paste a supplier name.</div></div>\n              <div class="field"><label>Supplier number</label><select id="puNumber"><option value="">Select saved number</option></select><div class="small muted">If needed, type a number below.</div></div>\n              <div class="field"><label>WhatsApp number for this message</label><input id="puManualNumber" inputmode="tel" placeholder="9876543210"></div>
-              <div class="field"><label>Company name</label><input id="puCompany" value="${escp(localStorage.getItem("sd_purchase_company")||"")}" placeholder="Your company name"></div>
+              <div class="field">
+                <label>Supplier *</label>
+                <input id="puSupplier" list="purchaseSupplierList" autocomplete="off" placeholder="Select or type supplier name">
+                <datalist id="purchaseSupplierList">${supplierList()}</datalist>
+                <div class="small muted">Choose a saved supplier or type/paste any supplier name.</div>
+              </div>
+
+              <div class="field">
+                <label>Saved supplier number</label>
+                <select id="puNumber"><option value="">Select saved number</option></select>
+                <div class="small muted">If the supplier has multiple numbers, choose one here.</div>
+              </div>
+
+              <div class="field">
+                <label>WhatsApp number for this message</label>
+                <input id="puManualNumber" inputmode="tel" placeholder="9876543210">
+                <div class="small muted">Leave blank to use the selected supplier number.</div>
+              </div>
+
+              <div class="field">
+                <label>Company name</label>
+                <input id="puCompany" value="${esc(localStorage.getItem("sd_purchase_company")||"")}" placeholder="Your company name">
+              </div>
             </div>
           </div>
+
           <div class="formSection">
             <div class="sectionTitle">Truck / receipt</div>
             <div class="grid three">
-              <div class="field"><label>Date *</label><input id="puDate" type="date" value="${todayp()}"></div>
+              <div class="field"><label>Date *</label><input id="puDate" type="date" value="${today()}"></div>
               <div class="field"><label>G.R. No.</label><input id="puGR" placeholder="GR-0001"></div>
               <div class="field"><label>Truck No.</label><input id="puTruck" placeholder="OD02AB1234"></div>
               <div class="field"><label>Bags</label><input id="puBags" type="number" min="0" step="1" placeholder="0"></div>
@@ -133,6 +311,7 @@ function draw(){
               <div class="field"><label>Rate (₹ / QTL)</label><input id="puRate" type="number" min="0" step=".01" placeholder="0.00"></div>
             </div>
           </div>
+
           <div class="formSection">
             <div class="sectionTitle">Quality</div>
             <div class="grid two">
@@ -140,22 +319,32 @@ function draw(){
               <div class="field"><label>FFA</label><input id="puFFA" placeholder="OK"></div>
             </div>
           </div>
+
           <div class="formSection">
             <div class="sectionTitle">Remarks <span>Optional</span></div>
             <div class="field"><input id="puRemarks" placeholder="Shortage, quality note, payment note, etc."></div>
           </div>
-          <div class="actions purchaseActions"><button class="primary" data-savepurchase>💾 Save message</button><button class="secondary" data-clearpurchase>Clear form</button></div>
+
+          <div class="actions purchaseActions">
+            <button class="primary" data-savepurchase>💾 Save message</button>
+            <button class="secondary" data-clearpurchase>Clear form</button>
+          </div>
         </div>
+
         <div class="panel purchasePreview">
           <div class="sectionHead"><div><h2>2. WhatsApp preview</h2><span>What the supplier will receive</span></div><span class="liveDot">● LIVE</span></div>
           <div class="waCard">
             <div class="waTop"><span>WhatsApp message</span><span>Preview</span></div>
             <textarea id="puPreview" readonly></textarea>
           </div>
-          <div class="previewActions"><button class="primary" data-wa>📱 Open WhatsApp</button><button class="secondary" data-copy>Copy</button></div>
-          <div class="tipBox"><b>How it works</b><br>Save the message for your records, then open WhatsApp. The message will already be filled in; you press <b>Send</b>.</div>
+          <div class="previewActions">
+            <button class="primary" data-wa>📱 Open WhatsApp</button>
+            <button class="secondary" data-copy>Copy</button>
+          </div>
+          <div class="tipBox"><b>How it works</b><br>Enter the supplier and purchase details. The preview changes automatically. Then copy the message or open WhatsApp.</div>
         </div>
       </div>
+
       <style>
         .purchaseNav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
         .purchaseHero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 24px;margin-bottom:14px;border:1px solid #dce3ec;border-radius:14px;background:linear-gradient(135deg,#f8fafc,#eef5ff)}
@@ -168,96 +357,75 @@ function draw(){
         @media(max-width:900px){.purchaseLayout{grid-template-columns:1fr}.grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:600px){.purchaseHero{align-items:flex-start;flex-direction:column}.grid.two,.grid.three{grid-template-columns:1fr}.purchaseHero{padding:18px}.purchasePreview .waCard textarea{min-height:280px}}
       </style>`;
-  }else if(S.view==="suppliers"){
-    body+='<div class="panel"><div class="sectionHead"><div><h2>Purchase suppliers</h2><span>Separate from Sales customers and parties</span></div><button class="primary" data-newsupplier>+ Add supplier</button></div>'+
-      tbl(["Supplier","WhatsApp / Mobile","Contact","GSTIN","Status",""],S.suppliers.map(x=>'<tr><td><b>'+escp(x.name)+'</b></td><td>'+escp(x.mobile||"")+'</td><td>'+escp(x.contact||"")+'</td><td>'+escp(x.gstin||"")+'</td><td><span class="pill '+(x.active===false?"cancel":"")+'">'+(x.active===false?"Inactive":"Active")+'</span></td><td><button class="secondary btnsm" data-editsupplier="'+escp(x.id)+'">Edit</button> <button class="danger btnsm" data-delsupplier="'+escp(x.id)+'">Delete</button></td></tr>'))+'</div>';
-  }else{
-    body+='<div class="panel"><div class="sectionHead"><div><h2>Purchase WhatsApp history</h2><span>Last 100 saved purchase messages</span></div></div>'+
-      tbl(["Date","Supplier","GR No.","Truck","Weight (QTL)","Rate / QTL","Message",""],S.messages.map(x=>'<tr><td>'+escp(x.date)+'</td><td><b>'+escp(x.supplier_name||"")+'</b></td><td>'+escp(x.gr_no||"")+'</td><td>'+escp(x.truck_no||"")+'</td><td>'+escp(x.weight||"")+'</td><td>'+moneyp(x.rate)+'</td><td><button class="secondary btnsm" data-viewmsg="'+escp(x.id)+'">View</button></td><td><button class="danger btnsm" data-delmsg="'+escp(x.id)+'">Delete</button></td></tr>'))+'</div>';
+    }else if(S.view==="suppliers"){
+      body += '<div class="panel"><div class="sectionHead"><div><h2>Purchase suppliers</h2><span>Separate from Sales customers and parties</span></div><button class="primary" data-newsupplier>+ Add supplier</button></div>' +
+        table(["Supplier","WhatsApp / Mobile","Contact","GSTIN","Status",""],
+          S.suppliers.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+esc(x.mobile||"")+'</td><td>'+esc(x.contact||"")+'</td><td>'+esc(x.gstin||"")+'</td><td><span class="pill '+(x.active===false?"cancel":"")+'">'+(x.active===false?"Inactive":"Active")+'</span></td><td><button class="secondary btnsm" data-editsupplier="'+esc(x.id)+'">Edit</button> <button class="danger btnsm" data-delsupplier="'+esc(x.id)+'">Delete</button></td></tr>')
+        ) + '</div>';
+    }else{
+      body += '<div class="panel"><div class="sectionHead"><div><h2>Purchase WhatsApp history</h2><span>Last 100 saved purchase messages</span></div></div>' +
+        table(["Date","Supplier","GR No.","Truck","Weight (QTL)","Rate / QTL","Message",""],
+          S.messages.map(x=>'<tr><td>'+esc(x.date)+'</td><td><b>'+esc(x.supplier_name||"")+'</b></td><td>'+esc(x.gr_no||"")+'</td><td>'+esc(x.truck_no||"")+'</td><td>'+esc(x.weight||"")+'</td><td>'+money(x.rate)+'</td><td><button class="secondary btnsm" data-viewmsg="'+esc(x.id)+'">View</button></td><td><button class="danger btnsm" data-delmsg="'+esc(x.id)+'">Delete</button></td></tr>')
+        ) + '</div>';
+    }
+
+    root.innerHTML=body;
+
+    if(S.view==="entry"){
+      ["puSupplier","puNumber","puManualNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"]
+        .forEach(id=>$(id)?.addEventListener("input",updatePreview));
+
+      $( "puSupplier" )?.addEventListener("input",syncSupplier);
+      $( "puSupplier" )?.addEventListener("change",syncSupplier);
+      $( "puNumber" )?.addEventListener("change",updatePreview);
+
+      syncSupplier();
+      updatePreview();
+    }
   }
-  s.innerHTML=body;
-  if(S.view==="entry"){
-    ["puSupplier","puNumber","puManualNumber","puCompany","puDate","puGR","puTruck","puBags","puWeight","puRate","puOil","puFFA","puRemarks"].forEach(id=>$(id)?.addEventListener("input",updatePreview));
-    $("puSupplier")?.addEventListener("change",()=>{updateSupplierNumbers();updatePreview()});
-    $("puNumber")?.addEventListener("change",updatePreview);
-    updateSupplierNumbers();
-    updatePreview();
-  }
-}
-function updateSupplierNumbers(){
-  const s=selectedSupplier();
-  const el=$("puNumber"); if(!el)return;
-  el.innerHTML='<option value="">Select number</option>'+numberOptions(s?.mobile||"");
-  if(numbersOf(s?.mobile||"").length===1) el.value=firstPhone(s.mobile);
-}
-function updatePreview(){
-  const t=messageText();
-  if($("puPreview"))$("puPreview").value=t;
-  const c=$("puCompany");if(c)localStorage.setItem("sd_purchase_company",c.value);
-}
-async function savePurchase(){
-  const supplier=selectedSupplier();
-  const supplierName=$("puSupplier")?.value.trim();
-  if(!supplierName)return alert("Enter a supplier name.");
-  
-  const selectedNumber=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplier?.mobile||"");
-  if(!selectedNumber)return alert("Enter a supplier WhatsApp/mobile number first.");
-  const text=messageText(),row={
-    supplier_id:supplier?.id||null,supplier_name:supplierName,mobile:selectedNumber,
-    date:$("puDate").value,gr_no:$("puGR").value.trim(),truck_no:$("puTruck").value.trim(),
-    bags:Number($("puBags").value||0),weight:Number($("puWeight").value||0),rate:Number($("puRate").value||0),
-    oil:Number($("puOil").value||0),ffa:$("puFFA").value.trim(),remarks:$("puRemarks").value.trim(),
-    message:text
+
+  const baseShow=window.showTab;
+  window.showTab=function(tab){
+    if(typeof baseShow==="function") baseShow(tab);
+    const root=$( "purchase" );
+    if(root) root.classList.toggle("hidden",tab!=="purchase");
+    if(tab==="purchase"){
+      if(!S.loaded) load();
+      else draw();
+    }
   };
-  if(!row.date)return alert("Date is required.");
-  const r=await supabaseClient.from(MSG).insert(row).select().single();
-  if(r.error)return alert(r.error.message);
-  S.messages.unshift(r.data);
-  alert("Purchase message saved.");
-  updatePreview();
-}
-function currentText(){return $("puPreview")?.value||messageText()}
-function openWA(){
-  const supplier=selectedSupplier();
-  const supplierName=$("puSupplier")?.value.trim();
-  if(!supplierName)return alert("Enter a supplier name.");
-  const selectedNumber=$("puManualNumber")?.value.trim()||$("puNumber")?.value||firstPhone(supplier?.mobile||"");
-  const p=phone(selectedNumber);
-  if(p.length<12)return alert("Supplier does not have a valid WhatsApp/mobile number.");
-  window.open("https://wa.me/"+p+"?text="+encodeURIComponent(currentText()),"_blank","noopener");
-}
-function viewMsg(id){
-  const x=S.messages.find(m=>m.id===id);if(!x)return;
-  openModal("Purchase WhatsApp message · "+escp(x.supplier_name),
-    '<textarea readonly style="min-height:320px;resize:vertical">'+escp(x.message||"")+'</textarea>'+
-    '<div class="small muted" style="margin-top:8px">Number: '+escp(x.mobile||"")+'</div>',
-    ()=>{return true});
-}
-async function deleteRow(table,id,msg){
-  if(!confirm(msg))return;
-  const r=await supabaseClient.from(table).delete().eq("id",id);
-  if(r.error)return alert(r.error.message);
-  await load();
-}
-const baseShow=window.showTab;
-window.showTab=function(t){
-  baseShow(t);
-  const p=$("purchase");
-  if(p)p.classList.toggle("hidden",t!=="purchase");
-  if(t==="purchase"&&!S.loaded)load(); else if(t==="purchase")draw();
-};
-document.addEventListener("click",async e=>{
-  const b=e.target.closest("[data-pview]"),wa=e.target.closest("[data-wa]"),cp=e.target.closest("[data-copy]");
-  if(b){S.view=b.dataset.pview;draw();return}
-  if(e.target.closest("[data-newsupplier]")){buildSupplierModal();return}
-  const es=e.target.closest("[data-editsupplier]");if(es){buildSupplierModal(es.dataset.editsupplier);return}
-  const ds=e.target.closest("[data-delsupplier]");if(ds){deleteRow(SUP,ds.dataset.delsupplier,"Delete this supplier?");return}
-  const dm=e.target.closest("[data-delmsg]");if(dm){deleteRow(MSG,dm.dataset.delmsg,"Delete this purchase message?");return}
-  const vm=e.target.closest("[data-viewmsg]");if(vm){viewMsg(vm.dataset.viewmsg);return}
-  if(wa){openWA();return}
-  if(cp){navigator.clipboard?.writeText(currentText()).then(()=>alert("Message copied."),()=>alert("Copy failed. Select and copy the preview manually."));return}
-  if(e.target.closest("[data-savepurchase]")){await savePurchase();return}
-  if(e.target.closest("[data-clearpurchase]")){clearEntry();return}
-});
-load();
+
+  document.addEventListener("click",async e=>{
+    const pv=e.target.closest("[data-pview]");
+    if(pv){ S.view=pv.dataset.pview; draw(); return; }
+
+    if(e.target.closest("[data-newsupplier]")){ supplierModal(); return; }
+
+    const edit=e.target.closest("[data-editsupplier]");
+    if(edit){ supplierModal(edit.dataset.editsupplier); return; }
+
+    const delS=e.target.closest("[data-delsupplier]");
+    if(delS){ await deleteRow(SUP,delS.dataset.delsupplier,"Delete this supplier?"); return; }
+
+    const delM=e.target.closest("[data-delmsg]");
+    if(delM){ await deleteRow(MSG,delM.dataset.delmsg,"Delete this purchase message?"); return; }
+
+    const view=e.target.closest("[data-viewmsg]");
+    if(view){ viewMessage(view.dataset.viewmsg); return; }
+
+    if(e.target.closest("[data-savepurchase]")){ await savePurchase(); return; }
+    if(e.target.closest("[data-clearpurchase]")){ clearEntry(); return; }
+    if(e.target.closest("[data-wa]")){ openWhatsApp(); return; }
+
+    if(e.target.closest("[data-copy]")){
+      const text=$( "puPreview" )?.value || messageText();
+      if(navigator.clipboard){
+        navigator.clipboard.writeText(text).then(()=>alert("Message copied."),()=>alert("Copy failed. Select the preview and copy manually."));
+      }else{
+        alert("Select the preview text and copy it manually.");
+      }
+    }
+  });
+
+  load();
 })();
