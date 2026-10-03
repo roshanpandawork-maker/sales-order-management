@@ -2,3 +2,45 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,"Segoe UI",Arial,sans-serif}header{background:linear-gradient(110deg,#142b45,#234b72);color:white;padding:20px max(20px,calc((100% - 1320px)/2));display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}h1{margin:0;font-size:22px;letter-spacing:-.3px}header p{margin:4px 0 0;color:#cbd8e6}.brand{display:flex;gap:12px;align-items:center}.logo{background:#ffffff1c;border:1px solid #ffffff30;border-radius:12px;padding:10px;font-weight:800}.wrap{max-width:1320px;margin:22px auto;padding:0 18px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}.tab,button{border:0;border-radius:9px;padding:10px 14px;font:600 13px inherit;cursor:pointer}.tab{background:white;border:1px solid var(--line);color:#46566b}.tab.active,.primary{background:var(--blue);color:white}.secondary{background:#edf2f8;color:#334155}.danger{background:#fff0ee;color:var(--red)}.softgreen{background:#eaf8ef;color:var(--green)}.panel,.metric{background:white;border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 3px 12px #1b35500a;margin-bottom:16px}.panel h2{font-size:16px;margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.sub{color:var(--muted);font-size:12px;margin:-7px 0 14px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.field{min-width:0}label{display:block;font-size:12px;font-weight:700;color:#405168;margin-bottom:5px}input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:10px 11px;background:white;color:var(--ink);font:inherit;min-width:0}input:focus,select:focus,textarea:focus{outline:2px solid #c4d5ff;border-color:var(--blue)}input[readonly]{background:#f8fafc;color:#526176}.actions,.filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:14px}.filters{margin:0 0 12px}.filters input,.filters select{max-width:260px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.metric{margin:0;padding:15px}.metric span{font-size:12px;color:var(--muted)}.metric strong{display:block;font-size:23px;margin-top:5px;letter-spacing:-.5px}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:10px 11px;border-bottom:1px solid var(--line);white-space:nowrap}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#66758a;background:#f8fafc}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fbfdff}.pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#eaf8ef;color:var(--green);font-size:11px;font-weight:700}.pill.open{background:#edf4ff;color:#2455c5}.pill.cancel{background:#fff0ee;color:var(--red)}.pill.warn{background:#fff7e6;color:var(--gold)}.hidden{display:none!important}.muted{color:var(--muted)}.small{font-size:11px}.right{margin-left:auto}.empty{text-align:center;color:var(--muted);padding:25px}.linehead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 9px}.linehead strong{font-size:13px}.lines{border:1px solid var(--line);border-radius:10px;overflow:auto}.lines table{min-width:800px}.lines input,.lines select{padding:8px;font-size:13px}.totalbar{display:flex;justify-content:flex-end;gap:22px;align-items:center;background:#f8fafc;padding:12px;border-radius:9px;margin-top:10px}.totalbar strong{font-size:17px}.notice{background:#eef5ff;color:#244b91;border:1px solid #d8e6ff;padding:10px 12px;border-radius:9px;margin-bottom:15px;font-size:12px}.emptybox{border:1px dashed #cbd5e1;border-radius:10px;padding:20px;text-align:center;color:var(--muted)}.btnsm{padding:6px 9px;font-size:11px}.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tag{font-size:11px;color:#617086;background:#f0f3f7;padding:4px 8px;border-radius:6px}.partycard{border:1px solid var(--line);border-radius:10px;padding:13px;margin:10px 0}.partycard h3{margin:0 0 8px;font-size:14px}.partygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.partygrid div{background:#f8fafc;padding:9px;border-radius:8px}.partygrid small{display:block;color:var(--muted)}.partygrid b{font-size:15px}.foot{font-size:11px;color:var(--muted);text-align:center;padding:8px 0 24px}
 @media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:540px){.grid{grid-template-columns:1fr}.wrap{padding:0 10px;margin:13px auto}.panel{padding:13px}.metrics{gap:8px}.metric strong{font-size:19px}header{padding:15px}.partygrid{grid-template-columns:1fr 1fr}}
 .login{position:fixed;inset:0;background:linear-gradient(110deg,#142b45,#234b72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}.loginbox{background:#fff;border-radius:14px;padding:26px;width:100%;max-width:360px;box-shadow:0 10px 40px #0004}.loginbox h2{margin:0 0 4px;font-size:20px}.loginbox .field{margin-top:12px}.loginbox button{width:100%;margin-top:16px}.lmsg{color:var(--red);font-size:12px;min-height:16px;margin-top:8px}label.secondary{padding:10px 14px;border-radius:9px;font:600 13px inherit;display:inline-block}.modal{position:fixed;inset:0;background:#0007;display:flex;padding:18px;overflow:auto;z-index:90}.mbox{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:640px;margin:auto}
+
+/* SalesDesk usability refresh */
+:root{--blue:#2458d3;--focus:#9bb8ff}
+html{scroll-behavior:smooth}
+body{letter-spacing:.005em}
+header{position:relative;box-shadow:0 5px 18px #10243b20}
+.wrap{max-width:1440px}
+.tabs{position:sticky;top:0;z-index:20;padding:8px 0;background:var(--bg);border-bottom:1px solid #e4eaf2}
+.tab{transition:background .15s ease,border-color .15s ease,transform .15s ease}
+.tab:hover{border-color:#a9bee9;background:#f4f7ff}
+.tab.active{box-shadow:0 4px 10px #2458d326}
+button{transition:filter .15s ease,transform .15s ease,box-shadow .15s ease}
+button:hover{filter:brightness(.98);box-shadow:0 2px 8px #142b4518}
+button:active{transform:translateY(1px)}
+button:focus-visible,[data-act]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+input:focus,select:focus,textarea:focus{outline:3px solid #c7d7ff;border-color:var(--blue);box-shadow:0 0 0 1px #2458d31a}
+.panel{padding:20px;border-radius:16px;box-shadow:0 5px 18px #1b35500b}
+.panel h2{font-size:17px}
+#orders>.panel:first-child{border-top:3px solid var(--blue)}
+#orderForm .grid{gap:14px}
+#orderForm .field label{margin-bottom:7px}
+.linehead{margin-top:22px}
+.lines{border-radius:12px;background:#fff}
+.lines thead th{position:sticky;top:0;z-index:2}
+.lines tbody tr:nth-child(even){background:#fbfcff}
+.lines tbody tr:focus-within{background:#f1f6ff}
+.lines input,.lines select{min-height:38px;border-color:#d5deea}
+.lines input[type=number]{font-variant-numeric:tabular-nums}
+.totalbar{position:sticky;bottom:8px;z-index:5;border:1px solid #dce6f7;background:#f5f8ff;box-shadow:0 4px 14px #142b4512;padding:14px 16px}
+.totalbar strong{font-size:20px;color:#173e9a;font-variant-numeric:tabular-nums}
+#orderForm>.actions{padding-top:12px}
+#orderForm>.actions .primary{min-width:170px}
+#orderRows td,#dashRows td,#salesRows td{vertical-align:middle}
+tbody tr:hover{background:#f5f8ff}
+.metrics .metric{border-radius:13px;position:relative;overflow:hidden}
+.metrics .metric:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:#7d9fe9}
+.metric strong{font-variant-numeric:tabular-nums}
+.filters input{flex:1;min-width:190px}
+.tablewrap{scrollbar-width:thin;scrollbar-color:#c3cfdf transparent}
+.empty{padding:30px 16px}
+@media(max-width:900px){.tabs{position:static}.panel{padding:16px}}
+@media(max-width:600px){header{align-items:flex-start}.toolbar{width:100%}.toolbar button,.toolbar label{flex:1;text-align:center}.wrap{padding:0 9px}.panel{padding:13px;border-radius:12px}.linehead{align-items:flex-start}.linehead .secondary{white-space:nowrap}.totalbar{bottom:4px}.filters input,.filters select{max-width:none;width:100%}#orderForm>.actions{display:grid;grid-template-columns:1fr 1fr}#orderForm>.actions button{width:100%}}
