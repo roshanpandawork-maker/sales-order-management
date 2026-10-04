@@ -1,5 +1,6 @@
 (function(){
 "use strict";
+window.FINANCE_READY=true;
 const E=id=>document.getElementById(id), X=esc, MN=money, FN=fmt;
 let company={name:"Your Company Name",address:"",gstin:"",phone:"",email:"",state:"",state_code:"",bank_name:"",bank_account:"",ifsc:"",terms:"",signature_text:"Authorised Signatory"};
 const P=c=>db.parties.find(x=>x.code===c), PR=c=>db.products.find(x=>x.code===c);
