@@ -3,11 +3,13 @@ const supabaseClient=window.supabase.createClient(SD_CFG.SUPABASE_URL,SD_CFG.SUP
 const $=id=>document.getElementById(id),today=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 let db={parties:[],products:[],orders:[],sales:[],payments:[],invoices:[]};
 const TABLES=['parties','products','orders','sales','payments','invoices'],PK={parties:'code',products:'code',orders:'no',sales:'id',payments:'id',invoices:'id'};
+// The UI uses db.invoices, while Supabase stores them in sales_invoices.
+const DB_TABLE={invoices:'sales_invoices'};
 let prev={},chain=Promise.resolve();
 function setTag(t){const e=$('syncTag');if(e)e.textContent=t}
 async function load(){
   for(const t of TABLES){
-    const {data,error}=await supabaseClient.from(t).select('*');
+    const {data,error}=await supabaseClient.from(DB_TABLE[t]||t).select('*');
     if(error){setTag('Not connected');alert('Could not load "'+t+'" from Supabase: '+error.message);return false}
     db[t]=data||[];prev[t]={};db[t].forEach(r=>prev[t][r[PK[t]]]=JSON.stringify(r));
   }
@@ -20,9 +22,9 @@ async function doSync(){
     db[t].forEach(r=>now[r[k]]=JSON.stringify(r));
     const up=db[t].filter(r=>old[r[k]]!==now[r[k]]);
     const del=Object.keys(old).filter(x=>!(x in now));
-    if(up.length){const {error}=await supabaseClient.from(t).upsert(up);if(error){setTag('Save failed');alert('Save failed ('+t+'): '+error.message);return}}
+    if(up.length){const {error}=await supabaseClient.from(DB_TABLE[t]||t).upsert(up);if(error){setTag('Save failed');alert('Save failed ('+t+'): '+error.message);return}}
     if(del.length>10&&!confirm('This will permanently delete '+del.length+' records from "'+t+'". Continue?')){await load();render();setTag('Cancelled');return}
-    if(del.length){const {error}=await supabaseClient.from(t).delete().in(k,del);if(error){setTag('Save failed');alert('Delete failed ('+t+'): '+error.message);return}}
+    if(del.length){const {error}=await supabaseClient.from(DB_TABLE[t]||t).delete().in(k,del);if(error){setTag('Save failed');alert('Delete failed ('+t+'): '+error.message);return}}
     prev[t]=now;
   }
   setTag('Supabase connected · saved');
