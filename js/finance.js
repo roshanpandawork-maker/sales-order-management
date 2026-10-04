@@ -1,6 +1,6 @@
 (function(){
 "use strict";
-const E=id=>document.getElementById(id), X=window.esc, MN=window.money, FN=window.fmt;
+const E=id=>document.getElementById(id), X=esc, MN=money, FN=fmt;
 let company={name:"Your Company Name",address:"",gstin:"",phone:"",email:"",state:"",state_code:"",bank_name:"",bank_account:"",ifsc:"",terms:"",signature_text:"Authorised Signatory"};
 const P=c=>db.parties.find(x=>x.code===c), PR=c=>db.products.find(x=>x.code===c);
 const nno=(pre,a,key)=>pre+String(Math.max(0,...(a||[]).map(x=>parseInt(String(x[key]||"").replace(/\D/g,""))||0))+1).padStart(5,"0");
