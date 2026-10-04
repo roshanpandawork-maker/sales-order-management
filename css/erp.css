@@ -148,3 +148,18 @@ nav.tabs .tab{width:auto;color:#53647a;white-space:nowrap}nav.tabs .tab:hover{ba
 @media(min-width:901px){
   .mobile-bottom-nav,.mobile-subnav{display:none!important}
 }
+
+
+/* Mobile header: keep actions usable instead of clipping the toolbar */
+@media(max-width:900px){
+  header{flex-wrap:wrap!important;align-items:center!important;gap:9px!important}
+  header .brand{flex:1 1 100%!important;min-width:0!important}
+  header .toolbar{
+    flex:1 1 100%!important;width:100%!important;max-width:none!important;min-width:0!important;
+    display:flex!important;gap:7px!important;overflow-x:auto!important;overflow-y:hidden!important;
+    padding-bottom:2px!important;-webkit-overflow-scrolling:touch;scrollbar-width:none
+  }
+  header .toolbar::-webkit-scrollbar{display:none}
+  header .toolbar>*{flex:0 0 auto!important;white-space:nowrap}
+}
+@media(max-width:540px){header .brand{flex:1 1 100%!important}header .toolbar{max-width:none!important}}
