@@ -105,7 +105,7 @@ input,select,textarea{min-height:44px}
 .notice{display:flex;align-items:center;gap:10px}
 .notice:before{content:"☁";font-size:17px}
 @media(max-width:900px){
-  body{padding-bottom:74px}
+  body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
   header{position:sticky;top:0;z-index:40;padding:11px 14px;box-shadow:0 8px 24px rgba(16,36,58,.14)}
   header .brand{min-width:0}
   .logo{width:38px;height:38px;border-radius:11px}
@@ -122,14 +122,14 @@ input,select,textarea{min-height:44px}
   .metric strong{font-size:21px}
   .panel{border-radius:14px;padding:14px;margin-bottom:12px}
   .linehead{margin:14px 0 9px}
-  .actions{position:sticky;bottom:84px;z-index:15;background:var(--surface);padding:9px;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 25px rgba(20,42,70,.12)}
+  .actions{position:static;z-index:auto;background:transparent;padding:0;border:0;border-radius:0;box-shadow:none}
   .actions button{flex:1}
   .filters{display:grid;grid-template-columns:1fr 1fr}
   .filters input,.filters select{max-width:none}
   .tablewrap{max-height:58vh;border-radius:10px}
   .tablewrap table{min-width:760px}
   .lines table{min-width:760px}
-  .totalbar{position:sticky;bottom:75px;z-index:12}
+  .totalbar{position:static}
   .grid2{gap:12px}
   .bar{grid-template-columns:95px 1fr auto;gap:7px}
 }
@@ -148,8 +148,8 @@ input,select,textarea{min-height:44px}
   .field label{font-size:10px}
   .filters{grid-template-columns:1fr}
   .filters input,.filters select{width:100%}
-  .actions{bottom:76px}
-  .totalbar{bottom:68px}
+  .actions{position:static}
+  .totalbar{position:static}
   #toasts{left:9px;right:9px;bottom:82px;max-width:none}
   .toast{font-size:12px}
   .loginbox{padding:22px;border-radius:16px}
