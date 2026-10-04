@@ -1,8 +1,8 @@
 const SD_CFG=window.SALESDESK_CONFIG;
 const supabaseClient=window.supabase.createClient(SD_CFG.SUPABASE_URL,SD_CFG.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id),today=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
-let db={parties:[],products:[],orders:[],sales:[]};
-const TABLES=['parties','products','orders','sales'],PK={parties:'code',products:'code',orders:'no',sales:'id'};
+let db={parties:[],products:[],orders:[],sales:[],payments:[],invoices:[]};
+const TABLES=['parties','products','orders','sales','payments','invoices'],PK={parties:'code',products:'code',orders:'no',sales:'id',payments:'id',invoices:'id'};
 let prev={},chain=Promise.resolve();
 function setTag(t){const e=$('syncTag');if(e)e.textContent=t}
 async function load(){
@@ -35,7 +35,7 @@ function id(prefix,arr,field){return prefix+String(Math.max(0,...arr.map(x=>pars
 function setPartyCode(){$('partyCode').value=id('PTY',db.parties,'code')}
 function setProductCode(){$('productCode').value=id('PRD',db.products,'code')}
 function setSO(){$('soNo').value=id('SO',db.orders,'no')}
-function showTab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));['dashboard','orders','sales','parties','products','balances'].forEach(x=>$(x).classList.toggle('hidden',x!==t));if(t==='orders'&&!$('orderLines').children.length)addOrderLine()}
+function showTab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));['dashboard','orders','sales','parties','products','balances','invoices','payments','reports','purchase','inventory'].forEach(x=>$(x).classList.toggle('hidden',x!==t));if(t==='orders'&&!$('orderLines').children.length)addOrderLine()}
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 function opts(arr,placeholder){return `<option value="">${placeholder}</option>`+arr.map(x=>`<option value="${esc(x.code)}">${esc(x.name)}</option>`).join('')}
 $('partyForm').onsubmit=e=>{e.preventDefault();let name=$('partyName').value.trim();if(db.parties.some(p=>p.name.toLowerCase()===name.toLowerCase()))return alert('Party already exists.');db.parties.push({code:$('partyCode').value,name,contact:$('partyContact').value,phone:$('partyPhone').value,gst:$('partyGST').value.toUpperCase(),address:$('partyAddress').value});save();e.target.reset();setPartyCode();alert('Party added successfully.')};
