@@ -133,6 +133,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   }
   function openGroup(key){
     const g=groups[key];if(!g)return;
+    const current=document.querySelector('.mbnav-item.active')?.dataset.mobileGroup;
+    const isOpen=!sub.classList.contains('hidden');
+    if(isOpen && current===key){
+      sub.classList.add('hidden');
+      sub.setAttribute('aria-hidden','true');
+      return;
+    }
     document.querySelectorAll('.mbnav-item').forEach(x=>x.classList.toggle('active',x.dataset.mobileGroup===key));
     title.textContent=g.label;
     grid.innerHTML=g.items.map(([tab,label])=>'<button type="button" data-tab="'+tab+'"><span>'+icon[tab]+'</span><span>'+label+'</span></button>').join('');
