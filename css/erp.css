@@ -250,3 +250,10 @@ nav.tabs .tab{width:auto;color:#53647a;white-space:nowrap}nav.tabs .tab:hover{ba
     .mobile-subnav-grid button{background:#172235!important;color:#dbe5f0!important;border-color:#2a3a52!important}
   }
 }
+
+
+/* Mobile app navigation is available only after authentication. */
+body:has(#loginBox:not(.hidden)) .mobile-bottom-nav,
+body:has(#loginBox:not(.hidden)) .mobile-subnav{
+  display:none!important;
+}
