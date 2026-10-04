@@ -85,3 +85,21 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
     items.setAttribute('aria-hidden',closed?'true':'false');
   });
 })();
+
+// Mobile navigation: start collapsed so the accordion is always reachable on touch screens.
+(function(){
+  const nav=document.querySelector('.erpSidebarNav');
+  if(!nav)return;
+  const mq=window.matchMedia('(max-width:900px)');
+  const sync=()=>{
+    if(!mq.matches)return;
+    nav.querySelectorAll('.nav-group[data-group]').forEach(g=>{
+      g.classList.add('is-collapsed');
+      const t=g.querySelector(':scope > .nav-title'),items=g.querySelector(':scope > .nav-items');
+      if(t)t.setAttribute('aria-expanded','false');
+      if(items)items.setAttribute('aria-hidden','true');
+    });
+  };
+  sync();
+  mq.addEventListener?.('change',()=>setTimeout(sync,0));
+})();
