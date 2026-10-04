@@ -103,3 +103,49 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   sync();
   mq.addEventListener?.('change',()=>setTimeout(sync,0));
 })();
+
+
+/* Mobile app navigation: bottom tabs + contextual menu */
+(function(){
+  const nav=document.getElementById('mobileBottomNav');
+  const sub=document.getElementById('mobileSubnav');
+  const grid=document.getElementById('mobileSubnavGrid');
+  const title=document.getElementById('mobileSubnavTitle');
+  const close=document.getElementById('mobileSubnavClose');
+  if(!nav||!sub||!grid)return;
+  const groups={
+    overview:{label:'Home',items:[['dashboard','Overview']]},
+    sales:{label:'Sales',items:[['orders','Sales Orders'],['sales','Sales / Dispatch'],['parties','Party Master'],['products','Products & Prices'],['balances','Party Balances']]},
+    purchase:{label:'Purchase',items:[['purchase','Purchase WhatsApp']]},
+    finance:{label:'Finance',items:[['invoices','Invoices (GST)'],['payments','Payments'],['reports','Reports']]},
+    more:{label:'More',items:[['inventory','Inventory']]}
+  };
+  const icon={dashboard:'⌂',orders:'▣',sales:'↗',parties:'♙',products:'◈',balances:'₹',purchase:'⇩',inventory:'▤',invoices:'▤',payments:'●',reports:'▥'};
+  const isMobile=()=>window.matchMedia('(max-width:900px)').matches;
+  function activate(tab){
+    const b=document.querySelector('.tab[data-tab="'+tab+'"]');
+    if(b)b.click();
+    document.querySelectorAll('.mbnav-item').forEach(x=>x.classList.remove('active'));
+    const group=Object.keys(groups).find(k=>groups[k].items.some(i=>i[0]===tab))||'more';
+    document.querySelector('.mbnav-item[data-mobile-group="'+group+'"]')?.classList.add('active');
+    grid.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
+    if(tab==='dashboard'||!isMobile()){sub.classList.add('hidden');sub.setAttribute('aria-hidden','true')}
+  }
+  function openGroup(key){
+    const g=groups[key];if(!g)return;
+    document.querySelectorAll('.mbnav-item').forEach(x=>x.classList.toggle('active',x.dataset.mobileGroup===key));
+    title.textContent=g.label;
+    grid.innerHTML=g.items.map(([tab,label])=>'<button type="button" data-tab="'+tab+'"><span>'+icon[tab]+'</span><span>'+label+'</span></button>').join('');
+    grid.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.tab)));
+    if(g.items.length===1){activate(g.items[0][0]);return}
+    sub.classList.remove('hidden');sub.setAttribute('aria-hidden','false');
+  }
+  nav.querySelectorAll('.mbnav-item').forEach(b=>b.addEventListener('click',()=>openGroup(b.dataset.mobileGroup)));
+  close?.addEventListener('click',()=>{sub.classList.add('hidden');sub.setAttribute('aria-hidden','true')});
+  document.addEventListener('click',e=>{
+    if(!isMobile()||sub.classList.contains('hidden'))return;
+    if(sub.contains(e.target)||nav.contains(e.target))return;
+    sub.classList.add('hidden');sub.setAttribute('aria-hidden','true');
+  });
+  window.addEventListener('resize',()=>{if(!isMobile())sub.classList.add('hidden')});
+})();
