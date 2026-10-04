@@ -88,3 +88,17 @@ nav.tabs .tab{width:auto;color:#53647a;white-space:nowrap}nav.tabs .tab:hover{ba
   .actions button{min-height:46px}
 }
 @media (prefers-reduced-motion:reduce){.erpSidebarNav{scroll-behavior:auto!important}}
+
+/* Mobile navigation reliability fix */
+@media(max-width:900px){
+  .erpSidebarNav{position:relative!important;display:block!important;overflow:visible!important;margin:0 9px 12px!important;padding:6px!important;border-radius:12px!important}
+  .erpSidebarNav .nav-group{display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important}
+  .erpSidebarNav .nav-title{width:100%!important;min-width:0!important;height:42px!important;justify-content:space-between!important;padding:0 13px!important;margin:3px 0!important;background:#f4f7fb!important;border:1px solid #dfe7f1!important;color:#42566d!important;font-size:11px!important}
+  .erpSidebarNav .nav-group .tab{min-height:44px!important;font-size:13px!important}
+  .erpSidebarNav .nav-items{position:static!important;left:auto!important;right:auto!important;display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;width:100%!important;max-height:600px!important;margin:0 0 5px!important;padding:5px!important;background:#f8faff!important;border:1px solid #e1e8f1!important;border-radius:10px!important;box-shadow:none!important;overflow:hidden!important}
+  .erpSidebarNav .nav-group.is-collapsed .nav-items{display:none!important}
+  .erpSidebarNav .nav-group .tab{width:100%!important;border:0!important;background:transparent!important;text-align:left!important}
+  .erpSidebarNav .nav-group .tab.active{background:var(--blue)!important;color:#fff!important}
+  .erpSidebarNav .navIcon{display:inline-block!important}
+}
+@media(max-width:540px){.erpSidebarNav{margin-left:6px!important;margin-right:6px!important}.erpSidebarNav .nav-title{height:44px!important}}
