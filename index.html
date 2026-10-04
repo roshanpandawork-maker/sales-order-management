@@ -10,24 +10,7 @@
 <div class="login" id="loginBox"><form class="loginbox" id="loginForm"><h2>SalesDesk</h2><div class="muted small">Sign in to continue</div><div class="field"><label>Username</label><input id="loginEmail" type="text" required autocomplete="username" autocapitalize="none"></div><div class="field"><label>Password</label><input id="loginPass" type="password" required autocomplete="current-password"></div><button class="primary">Sign in</button><button type="button" class="secondary" id="googleBtn">Sign in with Google</button><div class="lmsg" id="loginMsg"></div></form></div>
 <header><div class="brand"><div class="logo">SD</div><div><h1>SalesDesk</h1><p>Sales orders · Multi-item dispatch · Party balances</p></div></div><div class="toolbar"><span class="tag" id="syncTag" style="background:#ffffff20;color:white">Connecting…</span><button class="secondary" data-act="exportCSV">Export CSV</button><button class="secondary" data-act="logout">Log out</button><button class="secondary" data-act="backup">Backup JSON</button><label class="secondary" style="margin:0;cursor:pointer">Import backup<input type="file" accept=".json,application/json" id="restoreFile" style="display:none"></label></div></header>
 <div class="wrap"><div class="notice">Data is stored in a protected cloud database. Only authorised users can view or change it. Export a backup regularly.</div>
-<style id="salesdesk-sidebar-style">
-.erpSidebarNav{display:flex!important;flex-direction:column!important;gap:3px!important;padding:84px 10px 10px!important}
-.erpSidebarNav .nav-group{display:block!important;border-bottom:1px solid rgba(255,255,255,.07);padding:0 0 5px;margin:0}
-.erpSidebarNav .nav-title{width:100%;height:34px;border:0;background:transparent;color:#91a4b8;display:flex;align-items:center;justify-content:space-between;padding:0 10px;margin:0;cursor:pointer;border-radius:7px;font:800 10px/1 inherit;letter-spacing:.12em;text-align:left}
-.erpSidebarNav .nav-title:hover{background:rgba(255,255,255,.055);color:#fff}
-.erpSidebarNav .nav-title-static{cursor:default}
-.erpSidebarNav .nav-chevron{font-size:14px;line-height:1;transition:transform .18s ease;color:#71869c}
-.erpSidebarNav .nav-group.is-collapsed .nav-chevron{transform:rotate(-90deg)}
-.erpSidebarNav .nav-items{display:flex!important;flex-direction:column!important;gap:2px!important;max-height:600px;opacity:1;overflow:hidden;transition:max-height .22s ease,opacity .15s ease}
-.erpSidebarNav .nav-group.is-collapsed .nav-items{max-height:0!important;opacity:0!important;pointer-events:none!important}
-.erpSidebarNav .nav-group .tab{width:100%;min-height:37px;display:flex;align-items:center;gap:10px;border:0;background:transparent;color:#c3cfdb;text-align:left;white-space:nowrap;padding:8px 11px;border-radius:8px;box-sizing:border-box;cursor:pointer;font:500 13px/1.2 inherit}
-.erpSidebarNav .navIcon{width:18px;flex:0 0 18px;text-align:center;font-size:13px;color:#8fa5ba}
-.erpSidebarNav .nav-group .tab:hover{background:rgba(255,255,255,.065);color:#fff}
-.erpSidebarNav .nav-group .tab.active{background:#315fe9;color:#fff;box-shadow:0 3px 10px rgba(49,95,233,.22)}
-.erpSidebarNav .nav-group .tab.active .navIcon{color:#fff}
-.erpSidebarNav .nav-group:last-child{border-bottom:0}
-@media(max-width:900px){.erpSidebarNav{padding:6px!important}.erpSidebarNav .nav-title{padding:0 8px}.erpSidebarNav .nav-group .tab{padding-left:9px}}
-</style>
+
 <nav class="tabs erpSidebarNav" id="salesdeskSidebar">
   <div class="nav-group nav-overview">
     <button class="nav-title nav-title-static" type="button"><span>WORKSPACE</span></button>
@@ -93,40 +76,5 @@
 <script src="js/ui.js?v=20261004-4"></script><script src="js/finance.js?v=20261004-5"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/purchase.js"></script>
-<script src="js/payroll.js"></script><script>
-(function(){
-  function bindSidebar(){
-    var nav=document.querySelector('.erpSidebarNav');
-    if(!nav) return;
-    nav.querySelectorAll('.nav-group[data-group]').forEach(function(group){
-      var title=group.querySelector(':scope > .nav-title');
-      var items=group.querySelector(':scope > .nav-items');
-      if(!title||!items) return;
-      if(title.dataset.bound==='1') return;
-      title.dataset.bound='1';
-      title.addEventListener('pointerdown',function(e){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      },true);
-      title.addEventListener('click',function(e){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        var closed=!group.classList.contains('is-collapsed');
-        group.classList.toggle('is-collapsed',closed);
-        title.setAttribute('aria-expanded',closed?'false':'true');
-        items.setAttribute('aria-hidden',closed?'true':'false');
-        localStorage.setItem('salesdesk_sidebar_'+group.dataset.group,closed?'closed':'open');
-      },true);
-      var saved=localStorage.getItem('salesdesk_sidebar_'+group.dataset.group);
-      var closed=saved==='closed';
-      group.classList.toggle('is-collapsed',closed);
-      title.setAttribute('aria-expanded',closed?'false':'true');
-      items.setAttribute('aria-hidden',closed?'true':'false');
-    });
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindSidebar);
-  else bindSidebar();
-  window.addEventListener('load',bindSidebar);
-})();
-</script>
+<script src="js/payroll.js"></script>
 </body></html>
