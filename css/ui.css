@@ -30,3 +30,8 @@ tbody tr:nth-child(even) td{background:#fafbfe}
 [data-theme=dark] .bar u{background:#243447}
 [data-theme=dark] .tab:hover{background:#ffffff14}
 @media(max-width:900px){[data-theme=dark] nav.tabs{background:#162231;border-color:#243447}[data-theme=dark] nav.tabs .tab{color:#c5d4e3}}
+
+@media(max-width:900px){
+  .grid2{grid-template-columns:1fr}
+  .tablewrap th{position:sticky;top:0}
+}
