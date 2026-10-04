@@ -129,7 +129,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
     const group=Object.keys(groups).find(k=>groups[k].items.some(i=>i[0]===tab))||'more';
     document.querySelector('.mbnav-item[data-mobile-group="'+group+'"]')?.classList.add('active');
     grid.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
-    if(tab==='dashboard'||!isMobile()){sub.classList.add('hidden');sub.setAttribute('aria-hidden','true')}
+    // Selecting a submenu item navigates to that page; the menu must close immediately.
+    sub.classList.add('hidden');
+    sub.setAttribute('aria-hidden','true');
   }
   function openGroup(key){
     const g=groups[key];if(!g)return;
