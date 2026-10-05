@@ -218,29 +218,32 @@
   }
 
   function bind(){
-    const fab=$("mobileVoiceFab");
-    const start=$("voiceStart");
-
-    if(fab){
-      fab.addEventListener("click",e=>{
+    // Use document-level delegation so the control still works if the mobile
+    // navigation is re-rendered or replaced by another UI script.
+    document.addEventListener("click",e=>{
+      const fab=e.target.closest?.("#mobileVoiceFab");
+      if(fab){
         e.preventDefault();
         e.stopPropagation();
         openVoice();
         addTestControls();
-      });
-      fab.addEventListener("touchend",e=>{
-        e.preventDefault();
-        openVoice();
-        addTestControls();
-      },{passive:false});
-    }
-
-    if(start){
-      start.addEventListener("click",e=>{
+        return;
+      }
+      const start=e.target.closest?.("#voiceStart");
+      if(start){
         e.preventDefault();
         startListening();
-      });
-    }
+      }
+    },true);
+
+    document.addEventListener("touchend",e=>{
+      const fab=e.target.closest?.("#mobileVoiceFab");
+      if(!fab)return;
+      e.preventDefault();
+      e.stopPropagation();
+      openVoice();
+      addTestControls();
+    },{passive:false,capture:true});
 
     const login=$("loginBox");
     if(login){
