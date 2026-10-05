@@ -10,7 +10,7 @@
   const norm=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 
   function openVoice(){
-    document.querySelectorAll("main section, .wrap > section").forEach(s=>s.classList.add("hidden"));
+    document.querySelectorAll(".wrap > section").forEach(s=>s.classList.add("hidden"));
     $("voiceAssistant")?.classList.remove("hidden");
     $("voiceStatus").textContent="Ready";
   }
@@ -142,7 +142,7 @@
 
   document.addEventListener("DOMContentLoaded",()=>{
     $("voiceBtn")?.addEventListener("click",()=>{openVoice();addTestControls()});
-    $("mobileVoiceFab")?.addEventListener("click",()=>{openVoice();addTestControls()});
+    $("mobileVoiceFab")?.addEventListener("click",()=>{openVoice();addTestControls();window.scrollTo({top:0,behavior:"smooth"});});
     $("voiceStart")?.addEventListener("click",startListening);
   });
 })();
