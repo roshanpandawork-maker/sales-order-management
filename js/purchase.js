@@ -216,11 +216,12 @@
     const phone=cleanPhone(number);
     if(phone.length<12){ alert("Please enter a valid WhatsApp number."); return; }
 
-    window.open(
-      "https://wa.me/"+phone+"?text="+encodeURIComponent(messageText()),
-      "_blank",
-      "noopener"
-    );
+    const waUrl = "https://wa.me/" + phone + "?text=" + encodeURIComponent(messageText());
+
+    // Use a normal navigation instead of window.open(). Android WebView can
+    // intercept this URL and hand it to the installed WhatsApp app.
+    // This also avoids popup-blocking issues on some Android WebView versions.
+    window.location.href = waUrl;
   }
 
   function viewMessage(id){

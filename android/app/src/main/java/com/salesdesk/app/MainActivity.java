@@ -60,15 +60,18 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         webView.addJavascriptInterface(new AndroidVoiceBridge(), "AndroidVoice");
 
         webView.setWebViewClient(new WebViewClient() {
+            // Android 7+ WebView navigation callback.
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl();
-                String scheme = uri.getScheme();
-                String host = uri.getHost();
-                if ("file".equalsIgnoreCase(scheme) && uri.getPath() != null && uri.getPath().startsWith("/android_asset/www/")) return false;
-                if ("https".equalsIgnoreCase(scheme) && "noldgjtoqhwefqdzdpzs.supabase.co".equalsIgnoreCase(host)) return false;
-                try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
-                return true;
+                return handleUrl(view, request.getUrl());
+            }
+
+            // Keep the legacy callback too. Some WebView/redirect paths still use it,
+            // and without it custom schemes such as whatsapp:// can fall through to
+            // WebView and produce net::ERR_UNKNOWN_URL_SCHEME.
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return handleUrl(view, Uri.parse(url));
             }
         });
 
@@ -86,6 +89,61 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                 return true;
             }
         });
+    }
+
+    private boolean handleUrl(WebView view, Uri uri) {
+        if (uri == null) return true;
+
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+
+        // Keep the app's own local pages and Supabase API inside WebView.
+        if ("file".equalsIgnoreCase(scheme)
+                && uri.getPath() != null
+                && uri.getPath().startsWith("/android_asset/www/")) {
+            return false;
+        }
+
+        if ("https".equalsIgnoreCase(scheme)
+                && "noldgjtoqhwefqdzdpzs.supabase.co".equalsIgnoreCase(host)) {
+            return false;
+        }
+
+        // WhatsApp links must be handed to Android, not loaded by WebView.
+        // This covers both the current https://wa.me/... links and older
+        // whatsapp://send?... links that may still exist in cached/older web code.
+        boolean whatsappLink =
+                "whatsapp".equalsIgnoreCase(scheme)
+                || ("https".equalsIgnoreCase(scheme)
+                    && ("wa.me".equalsIgnoreCase(host) || "api.whatsapp.com".equalsIgnoreCase(host)));
+
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+
+            // Prefer the installed WhatsApp app for wa.me/WhatsApp links.
+            if (whatsappLink) {
+                intent.setPackage("com.whatsapp");
+                try {
+                    startActivity(intent);
+                    return true;
+                } catch (Exception ignored) {
+                    // WhatsApp may not be installed; allow WhatsApp Business or
+                    // the browser/system handler to take over below.
+                    intent.setPackage(null);
+                    try {
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception ignoredAgain) {
+                        return true;
+                    }
+                }
+            }
+
+            startActivity(intent);
+        } catch (Exception ignored) {
+            // Never send unsupported schemes back into WebView.
+        }
+        return true;
     }
 
     private ValueCallback<Uri[]> fileCallback;
