@@ -235,6 +235,12 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
     private class AndroidVoiceBridge {
         @JavascriptInterface
+        public String getAppVersion() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+            catch (Exception e) { return "1.0.0"; }
+        }
+
+        @JavascriptInterface
         public void startListening() {
             runOnUiThread(() -> {
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
