@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.salesdesk.app',
   appName: 'SalesDesk',
-  webDir: '.',
+  webDir: 'www',
   android: {
     backgroundColor: '#0f172a'
   }
