@@ -109,10 +109,6 @@
     }
 
     try{
-      if(!window.supabaseClient){
-        throw new Error("SalesDesk connection is not ready.");
-      }
-
       const {data,error}=await supabaseClient.rpc("get_party_stock_voice",{
         p_party_name:cmd.party,
         p_product_name:cmd.product
