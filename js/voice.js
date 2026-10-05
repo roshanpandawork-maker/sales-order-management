@@ -144,18 +144,10 @@
   }
 
   async function speak(text){
-    const nativeTts=window.Capacitor?.Plugins?.SpeechSynthesis;
+    const nativeTts=window.AndroidVoice;
     if(nativeTts){
       try{
-        await nativeTts.cancel();
-        await nativeTts.speak({
-          text,
-          language:"en-IN",
-          rate:.95,
-          pitch:1,
-          volume:1,
-          queueStrategy:"Flush"
-        });
+        if(nativeTts.speak) nativeTts.speak(text);
         return;
       }catch(e){console.warn("Native TTS failed:",e)}
     }
@@ -170,37 +162,23 @@
   async function startListening(){
     if(!isLoggedIn())return;
 
-    // Native Android recognizer when running inside the Capacitor app.
-    const nativeVoice=window.Capacitor?.Plugins?.SpeechRecognition;
+    // Native Android recognizer when running inside the installed Android app.
+    const nativeVoice=window.AndroidVoice;
     if(nativeVoice){
       if(listening){
         try{await nativeVoice.stop()}catch(_){}
+        try{nativeVoice.stopListening()}catch(_){}
         listening=false;
         $("voiceStart").textContent="Start listening";
         $("voiceStatus").textContent="Ready";
         return;
       }
       try{
-        const perm=await nativeVoice.requestPermissions();
-        if(perm?.speechRecognition==="denied"){
-          throw new Error("Microphone permission was denied.");
-        }
-        const available=await nativeVoice.available();
-        if(!available?.available)throw new Error("Speech recognition is not available on this device.");
+        if(!nativeVoice.startListening)throw new Error("Android voice bridge is unavailable.");
         listening=true;
         $("voiceStatus").textContent="Listening…";
         $("voiceStart").textContent="Stop listening";
-        const result=await nativeVoice.start({
-          language:"en-IN",
-          maxResults:1,
-          partialResults:false,
-          popup:false
-        });
-        listening=false;
-        $("voiceStart").textContent="Start listening";
-        const transcript=result?.matches?.[0]||"";
-        if(transcript)await runCommand(transcript);
-        else $("voiceStatus").textContent="No speech detected";
+        nativeVoice.startListening();
       }catch(e){
         listening=false;
         $("voiceStart").textContent="Start listening";
@@ -307,6 +285,20 @@
 
     syncFab();
   }
+
+  window.salesDeskNativeVoiceResult=function(text){
+    listening=false;
+    $("voiceStart").textContent="Start listening";
+    if(text)runCommand(text);
+    else $("voiceStatus").textContent="No speech detected";
+  };
+
+  window.salesDeskNativeVoiceError=function(message){
+    listening=false;
+    $("voiceStart").textContent="Start listening";
+    $("voiceStatus").textContent="Voice error";
+    $("voiceAnswer").textContent=message||"Android voice recognition failed.";
+  };
 
   // Scripts are loaded at the end of <body>, so bind immediately.
   if(document.readyState==="loading"){
