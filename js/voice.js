@@ -1,31 +1,55 @@
 /* SalesDesk Local Voice Agent — ₹0 test mode
  * No OpenAI/API key required.
- * Uses browser SpeechRecognition + Supabase RPC + browser speechSynthesis.
+ * Browser speech recognition + Supabase RPC + browser speech synthesis.
  */
 (function(){
   "use strict";
+
   const $=id=>document.getElementById(id);
-  let recognition=null, listening=false;
+  let recognition=null;
+  let listening=false;
 
   const norm=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 
+  function isLoggedIn(){
+    const login=$("loginBox");
+    return !!login && login.classList.contains("hidden");
+  }
+
+  function syncFab(){
+    const fab=$("mobileVoiceFab");
+    if(!fab)return;
+    fab.style.display=isLoggedIn() ? "flex" : "none";
+    fab.setAttribute("aria-hidden",isLoggedIn() ? "false" : "true");
+  }
+
   function openVoice(){
+    if(!isLoggedIn()){
+      alert("Please sign in first.");
+      return;
+    }
     document.querySelectorAll(".wrap > section").forEach(s=>s.classList.add("hidden"));
-    $("voiceAssistant")?.classList.remove("hidden");
+    const section=$("voiceAssistant");
+    if(section){
+      section.classList.remove("hidden");
+      section.scrollIntoView({behavior:"smooth",block:"start"});
+    }
     $("voiceStatus").textContent="Ready";
+    $("voiceAnswer").textContent="";
   }
 
   function findParty(text){
     const n=norm(text);
-    const exact=db.parties.find(p=>norm(p.name)===n);
+    const exact=(db.parties||[]).find(p=>norm(p.name)===n);
     if(exact)return exact;
-    return db.parties.slice().sort((a,b)=>norm(b.name).length-norm(a.name).length)
+    return (db.parties||[]).slice()
+      .sort((a,b)=>norm(b.name).length-norm(a.name).length)
       .find(p=>n.includes(norm(p.name)) || norm(p.name).includes(n));
   }
 
   function findProduct(text){
     const n=norm(text);
-    const exact=db.products.find(p=>norm(p.name)===n || norm(p.code)===n);
+    const exact=(db.products||[]).find(p=>norm(p.name)===n || norm(p.code)===n);
     if(exact)return exact;
     const aliases={
       "eastern":"Eastern tin",
@@ -38,32 +62,43 @@
       "tin":"SRIKHETRA TIN"
     };
     const alias=aliases[n];
-    if(alias){const p=db.products.find(x=>norm(x.name)===norm(alias));if(p)return p;}
-    return db.products.slice().sort((a,b)=>norm(b.name).length-norm(a.name).length)
+    if(alias){
+      const p=(db.products||[]).find(x=>norm(x.name)===norm(alias));
+      if(p)return p;
+    }
+    return (db.products||[]).slice()
+      .sort((a,b)=>norm(b.name).length-norm(a.name).length)
       .find(p=>n.includes(norm(p.name)) || norm(p.name).includes(n));
   }
 
   function parseCommand(text){
-    const raw=String(text||"").trim(), n=norm(raw);
+    const raw=String(text||"").trim(),n=norm(raw);
     if(!n)return {intent:"unknown"};
+
     const wantsAvailable=/\b(available|balance|left|remaining|outstanding|stock)\b/.test(n);
     const wantsQty=/\b(how much|how many|quantity|qty)\b/.test(n);
     const party=findParty(raw);
     let product=null;
+
     if(party){
       const withoutParty=n.replace(norm(party.name),"").trim();
       product=findProduct(withoutParty);
     }else{
       product=findProduct(raw);
     }
-    if((wantsAvailable||wantsQty) && party)return {intent:"available_qty",party:party.name,product:product?.name||null};
+
+    if((wantsAvailable||wantsQty)&&party){
+      return {intent:"available_qty",party:party.name,product:product?.name||null};
+    }
     return {intent:"unknown",party:party?.name||null,product:product?.name||null};
   }
 
   async function runCommand(text){
+    if(!text)return;
     $("voiceTranscript").textContent='You: "'+text+'"';
     $("voiceStatus").textContent="Checking SalesDesk data…";
     $("voiceAnswer").textContent="";
+
     const cmd=parseCommand(text);
     if(cmd.intent!=="available_qty"){
       const msg="Try: How much Eastern tin is available for Kasturi Traders?";
@@ -72,12 +107,18 @@
       speak(msg);
       return;
     }
+
     try{
+      if(!window.supabaseClient){
+        throw new Error("SalesDesk connection is not ready.");
+      }
+
       const {data,error}=await supabaseClient.rpc("get_party_stock_voice",{
         p_party_name:cmd.party,
         p_product_name:cmd.product
       });
       if(error)throw error;
+
       const products=Array.isArray(data?.products)?data.products:[];
       if(!products.length){
         const msg=cmd.product
@@ -88,10 +129,12 @@
         speak(msg);
         return;
       }
+
       const lines=products.map(p=>p.product_name+" "+fmt(p.available)+" "+p.unit);
       const msg=cmd.product
         ? cmd.party+" has "+lines[0]+" available."
         : cmd.party+" has "+lines.join(", ")+" available.";
+
       $("voiceStatus").textContent="Completed";
       $("voiceAnswer").textContent=msg;
       speak(msg);
@@ -108,41 +151,113 @@
     if(!("speechSynthesis" in window))return;
     window.speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);
-    u.lang="en-IN";u.rate=.95;
+    u.lang="en-IN";
+    u.rate=.95;
     window.speechSynthesis.speak(u);
   }
 
   function startListening(){
+    if(!isLoggedIn())return;
+
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){
       $("voiceStatus").textContent="Speech input unavailable";
-      $("voiceAnswer").textContent="Your browser does not provide SpeechRecognition. Use Chrome/Edge or type the test command below.";
+      $("voiceAnswer").textContent="Use Chrome or Edge, or type the test command below.";
       return;
     }
-    if(listening){recognition?.stop();return;}
+
+    if(listening){
+      recognition?.stop();
+      return;
+    }
+
     recognition=new SR();
     recognition.lang="en-IN";
     recognition.interimResults=false;
     recognition.maxAlternatives=1;
-    recognition.onstart=()=>{listening=true;$("voiceStatus").textContent="Listening…";$("voiceStart").textContent="Stop listening";};
-    recognition.onerror=e=>{$("voiceStatus").textContent="Voice error: "+e.error;};
-    recognition.onend=()=>{listening=false;$("voiceStart").textContent="Start listening";};
-    recognition.onresult=e=>runCommand(e.results[0][0].transcript);
-    recognition.start();
+
+    recognition.onstart=()=>{
+      listening=true;
+      $("voiceStatus").textContent="Listening…";
+      $("voiceStart").textContent="Stop listening";
+    };
+
+    recognition.onerror=e=>{
+      listening=false;
+      $("voiceStatus").textContent="Voice error: "+e.error;
+      $("voiceAnswer").textContent=
+        e.error==="not-allowed"
+          ? "Microphone permission was blocked. Allow microphone access for this site and try again."
+          : "Voice input failed. You can use the typed test box below.";
+    };
+
+    recognition.onend=()=>{
+      listening=false;
+      $("voiceStart").textContent="Start listening";
+    };
+
+    recognition.onresult=e=>{
+      const transcript=e.results?.[0]?.[0]?.transcript||"";
+      runCommand(transcript);
+    };
+
+    try{
+      recognition.start();
+    }catch(e){
+      $("voiceStatus").textContent="Could not start microphone";
+      $("voiceAnswer").textContent=e.message||"Please try again.";
+    }
   }
 
   function addTestControls(){
-    const panel=$("voiceAssistant")?.querySelector(".panel");if(!panel||$("voiceTestInput"))return;
+    const panel=$("voiceAssistant")?.querySelector(".panel");
+    if(!panel||$("voiceTestInput"))return;
+
     const wrap=document.createElement("div");
     wrap.style.cssText="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap";
     wrap.innerHTML='<input id="voiceTestInput" style="flex:1;min-width:240px" placeholder="Type a command to test without microphone" value="How much Eastern tin is available for Kasturi Traders?"><button class="secondary" id="voiceTestRun" type="button">Run test</button>';
     panel.insertBefore(wrap,$("voiceStart"));
-    $("voiceTestRun").onclick=()=>runCommand($("voiceTestInput").value);
+
+    $("voiceTestRun").addEventListener("click",()=>runCommand($("voiceTestInput").value));
   }
 
-  document.addEventListener("DOMContentLoaded",()=>{
-    $("voiceBtn")?.addEventListener("click",()=>{openVoice();addTestControls()});
-    $("mobileVoiceFab")?.addEventListener("click",()=>{openVoice();addTestControls();window.scrollTo({top:0,behavior:"smooth"});});
-    $("voiceStart")?.addEventListener("click",startListening);
-  });
+  function bind(){
+    const fab=$("mobileVoiceFab");
+    const start=$("voiceStart");
+
+    if(fab){
+      fab.addEventListener("click",e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        openVoice();
+        addTestControls();
+      });
+      fab.addEventListener("touchend",e=>{
+        e.preventDefault();
+        openVoice();
+        addTestControls();
+      },{passive:false});
+    }
+
+    if(start){
+      start.addEventListener("click",e=>{
+        e.preventDefault();
+        startListening();
+      });
+    }
+
+    const login=$("loginBox");
+    if(login){
+      new MutationObserver(syncFab).observe(login,{attributes:true,attributeFilter:["class"]});
+    }
+
+    syncFab();
+  }
+
+  // Scripts are loaded at the end of <body>, so bind immediately.
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",bind,{once:true});
+  }else{
+    bind();
+  }
 })();
