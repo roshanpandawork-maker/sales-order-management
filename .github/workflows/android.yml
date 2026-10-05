@@ -10,53 +10,38 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
         with:
-          node-version: 22
+          distribution: temurin
+          java-version: '17'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Prepare web bundle
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Prepare web assets
         run: |
-          rm -rf www
-          mkdir -p www
-          cp index.html www/
-          cp -r css js vendor www/
+          rm -rf android/app/src/main/assets/www
+          mkdir -p android/app/src/main/assets/www
+          cp index.html android/app/src/main/assets/www/
+          cp -r css js vendor android/app/src/main/assets/www/
 
-      - name: Add Android platform
-        run: npx cap add android
-
-      - name: Generate Android app icon
-        run: npx @capacitor/assets generate --android --assetPath assets --iconBackgroundColor '#0f172a' --iconBackgroundColorDark '#0f172a'
-
-      - name: Sync web app
-        run: npx cap sync android
-
-      - name: Configure microphone permission
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("android/app/src/main/AndroidManifest.xml")
-          s=p.read_text()
-          if "android.permission.RECORD_AUDIO" not in s:
-              s=s.replace("<manifest xmlns:android=", "<uses-permission android:name=\"android.permission.RECORD_AUDIO\" />\n<manifest xmlns:android=")
-          p.write_text(s)
-          PY
+      - name: Generate Gradle wrapper
+        working-directory: android
+        run: gradle wrapper --gradle-version 8.13 --distribution-type bin
 
       - name: Build debug APK
         working-directory: android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
