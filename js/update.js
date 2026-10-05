@@ -40,6 +40,11 @@ function bind(){
     if(!b)return;
     e.preventDefault();checkUpdate();
   });
+  if(window.matchMedia("(max-width:900px)").matches&&!document.getElementById("mobileAppUpdateBtn")){
+    const b=document.createElement("button");b.id="mobileAppUpdateBtn";b.type="button";b.className="secondary";b.textContent="↻ Update";b.setAttribute("data-app-update","1");
+    b.style.cssText="position:fixed;right:12px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:109;border-radius:999px;padding:9px 13px;font-weight:800;box-shadow:0 8px 22px rgba(0,0,0,.18);";
+    document.body.appendChild(b);
+  }
   const toolbar=document.querySelector(".toolbar");
   if(toolbar&&!document.getElementById("appUpdateBtn")){
     const b=document.createElement("button");
