@@ -10,6 +10,8 @@
   let listening=false;
 
   const norm=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  async function waitForData(){for(let i=0;i<30;i++){if(window.db&&Array.isArray(db.parties)&&Array.isArray(db.products))return true;await sleep(150)}return false;}
 
   function isLoggedIn(){
     const login=$("loginBox");
@@ -95,6 +97,7 @@
 
   async function runCommand(text){
     if(!text)return;
+    await waitForData();
     $("voiceTranscript").textContent='You: "'+text+'"';
     $("voiceStatus").textContent="Checking SalesDesk data…";
     $("voiceAnswer").textContent="";
