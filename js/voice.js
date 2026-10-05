@@ -143,7 +143,22 @@
     }
   }
 
-  function speak(text){
+  async function speak(text){
+    const nativeTts=window.Capacitor?.Plugins?.SpeechSynthesis;
+    if(nativeTts){
+      try{
+        await nativeTts.cancel();
+        await nativeTts.speak({
+          text,
+          language:"en-IN",
+          rate:.95,
+          pitch:1,
+          volume:1,
+          queueStrategy:"Flush"
+        });
+        return;
+      }catch(e){console.warn("Native TTS failed:",e)}
+    }
     if(!("speechSynthesis" in window))return;
     window.speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);
@@ -152,8 +167,48 @@
     window.speechSynthesis.speak(u);
   }
 
-  function startListening(){
+  async function startListening(){
     if(!isLoggedIn())return;
+
+    // Native Android recognizer when running inside the Capacitor app.
+    const nativeVoice=window.Capacitor?.Plugins?.SpeechRecognition;
+    if(nativeVoice){
+      if(listening){
+        try{await nativeVoice.stop()}catch(_){}
+        listening=false;
+        $("voiceStart").textContent="Start listening";
+        $("voiceStatus").textContent="Ready";
+        return;
+      }
+      try{
+        const perm=await nativeVoice.requestPermissions();
+        if(perm?.speechRecognition==="denied"){
+          throw new Error("Microphone permission was denied.");
+        }
+        const available=await nativeVoice.available();
+        if(!available?.available)throw new Error("Speech recognition is not available on this device.");
+        listening=true;
+        $("voiceStatus").textContent="Listening…";
+        $("voiceStart").textContent="Stop listening";
+        const result=await nativeVoice.start({
+          language:"en-IN",
+          maxResults:1,
+          partialResults:false,
+          popup:false
+        });
+        listening=false;
+        $("voiceStart").textContent="Start listening";
+        const transcript=result?.matches?.[0]||"";
+        if(transcript)await runCommand(transcript);
+        else $("voiceStatus").textContent="No speech detected";
+      }catch(e){
+        listening=false;
+        $("voiceStart").textContent="Start listening";
+        $("voiceStatus").textContent="Voice error";
+        $("voiceAnswer").textContent=e.message||"Could not start native voice recognition.";
+      }
+      return;
+    }
 
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){
