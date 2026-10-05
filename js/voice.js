@@ -1,0 +1,1 @@
+// Voice assistant entry point. Browser speech support will be connected here.
