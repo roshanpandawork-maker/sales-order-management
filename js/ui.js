@@ -54,12 +54,63 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   window.orderLineSold=(no,code,type)=>db.sales.filter(s=>s.so===no&&s.productCode===code&&(!type||st(s)===type)).reduce((a,s)=>a+Number(s.qty),0);
   window.orderStatus=o=>o.status==='Cancelled'?'Cancelled':o.lines.every(l=>l.qty-orderLineSold(o.no,l.productCode,lt(l))<=.000001)?'Closed':'Ongoing';
   window.orderSold=o=>o.lines.reduce((a,l)=>a+orderLineSold(o.no,l.productCode,lt(l)),0);
-  window.loadSaleLines=function(){const o=db.orders.find(x=>x.no===$('saleSO').value);$('saleParty').value=o?.party||'';$('saleLines').innerHTML='';if($('saleAutoQty'))$('saleAutoQty').value='';if($('saleAutoHint'))$('saleAutoHint').textContent='Enter one total quantity and the app will fill products in SO order, up to each available balance.';if(!o){$('saleLines').innerHTML='<tr><td colspan="8" class="empty">Select an SO to load its products.</td></tr>';return}o.lines.forEach(l=>{const p=db.products.find(x=>x.code===l.productCode),u=lt(l),sold=orderLineSold(o.no,l.productCode,u),bal=l.qty-sold,tr=document.createElement('tr');tr.dataset.code=l.productCode;tr.dataset.qtyType=u;tr.innerHTML=`<td>${esc(p?.name||l.productCode)}</td><td><span class="tag">${u}</span></td><td>${fmt(l.qty)}</td><td>${fmt(sold)}</td><td class="available">${fmt(bal)}</td><td><input class="sl-qty" type="number" min="0" max="${bal}" step=".001" placeholder="0" ${bal<=0?'disabled':''}></td><td><input class="sl-rate" type="number" min="0" step=".01" value="${esc(l.rate)}"></td><td class="sl-value">${money(0)}</td>`;tr.querySelectorAll('input').forEach(i=>i.oninput=calcSale);$('saleLines').appendChild(tr)});$('saleHint').textContent=o.no+' · '+o.party;calcSale()};
-  function autoAllocateSaleQty(){const total=Number($('saleAutoQty')?.value||0),rows=[...$('saleLines').rows].filter(r=>r.querySelector('.sl-qty'));if(!(total>0))return alert('Enter a total quantity to dispatch.');if(!rows.length)return alert('Select an SO first.');const units=[...new Set(rows.filter(r=>Number(r.querySelector('.available')?.textContent||0)>0).map(r=>r.dataset.qtyType))];if(units.length>1)return alert('Auto divide works only when available products use the same quantity unit. Enter quantities manually for mixed units.');let remaining=total;rows.forEach(r=>{const input=r.querySelector('.sl-qty'),available=Number(r.querySelector('.available')?.textContent||0),q=Math.min(Math.max(remaining,0),Math.max(available,0));input.value=q>0?q:'';remaining=Math.max(0,remaining-q)});calcSale();$('saleAutoHint').textContent=remaining>0?'Only '+fmt(total-remaining)+' '+(units[0]||'QTL')+' allocated; '+fmt(remaining)+' remains because the SO balance is insufficient.':'Allocated '+fmt(total)+' '+(units[0]||'QTL')+' across the available products.';} $('saleAutoAllocate')?.addEventListener('click',autoAllocateSaleQty);
+  window.loadSaleLines=function(){
+    const party=$('saleSO').value;
+    $('saleParty').value=party||'';
+    $('saleLines').innerHTML='';
+    if(!party){$('saleLines').innerHTML='<tr><td colspan="8" class="empty">Select a party to load all products.</td></tr>';return}
+    (db.products||[]).forEach(p=>{
+      const sources=[];
+      (db.orders||[]).forEach(o=>{
+        if(o.party!==party || o.status==='Cancelled')return;
+        (o.lines||[]).forEach(l=>{
+          if(String(l.productCode||'')!==String(p.code||''))return;
+          const u=lt(l),sold=orderLineSold(o.no,l.productCode,u),bal=Math.max(0,Number(l.qty||0)-sold);
+          if(bal>0)sources.push({o,l,u,bal,rate:Number(l.rate||0)});
+        });
+      });
+      const total=sources.reduce((a,x)=>a+x.bal,0);
+      if(total<=0)return;
+      const rates=[...new Set(sources.map(x=>x.rate))];
+      const defaultRate=rates.length===1?rates[0]:Number(p.rate||0);
+      const tr=document.createElement('tr');
+      tr.dataset.code=p.code;tr.dataset.qtyType=p.unit||'QTL';
+      tr.dataset.sources=JSON.stringify(sources.map(x=>({so:x.o.no,rate:x.rate,balance:x.bal,unit:x.u})));
+      tr.innerHTML='<td>'+esc(p.name||p.code)+'</td><td><span class="tag">'+esc(p.unit||'QTL')+'</span></td><td class="product-total">'+fmt(total)+'</td><td><input class="sl-qty" type="number" min="0" max="'+total+'" step=".001" placeholder="0"></td><td><input class="sl-rate" type="number" min="0" step=".01" value="'+esc(defaultRate)+'"></td><td colspan="3"><span class="tag allocation-status">Enter qty and rate</span></td>';
+      tr.querySelectorAll('input').forEach(i=>i.oninput=calcSale);
+      $('saleLines').appendChild(tr);
+    });
+    $('saleHint').textContent=party+' · Match rule: Product + Rate + Party';
+    calcSale();
+  };
   const saleSOEl=$('saleSO');
   if(saleSOEl){saleSOEl.onchange=()=>window.loadSaleLines()}
-  $('salesForm').onsubmit=e=>{e.preventDefault();const o=db.orders.find(x=>x.no===$('saleSO').value);if(!o)return alert('Select an SO.');const lines=[...$('saleLines').rows].map(r=>({productCode:r.dataset.code,qtyType:r.dataset.qtyType,qty:Number(r.querySelector('.sl-qty')?.value||0),rate:Number(r.querySelector('.sl-rate')?.value||0)})).filter(x=>x.qty>0);if(!lines.length)return alert('Enter a dispatch quantity for at least one product.');for(const l of lines){const wantedCode=String(l.productCode||'').trim();let original=o.lines.find(x=>String(x.productCode||'').trim()===wantedCode);if(!original){const product=db.products.find(p=>String(p.code||'').trim()===wantedCode);if(!product)return alert('Product not found in this Sales Order.');return alert('Product is not part of this Sales Order.');}const orderType=lt(original);l.qtyType=orderType;const available=Number(original.qty||0)-orderLineSold(o.no,wantedCode,orderType);if(l.qty>available+1e-8)return alert('Dispatch quantity exceeds available balance. Available: '+fmt(available)+' '+orderType)}const b='DS'+Date.now();lines.forEach(l=>db.sales.push({id:b+'-'+l.productCode,date:$('saleDate').value,so:o.no,party:o.party,partyCode:o.partyCode,invoice:$('saleInvoice').value.trim(),productCode:l.productCode,qty:l.qty,qty_type:l.qtyType,rate:l.rate,remarks:$('saleRemarks').value}));save();e.target.reset();$('saleDate').value=today;clearSaleLines();alert('Dispatch saved for '+lines.length+' product(s).')};
-  const oldRender=window.render;window.render=function(){normalize();oldRender();const oh=document.querySelector('#orders .lines thead tr'),sh=document.querySelector('#sales .lines thead tr');if(oh)oh.children[1].textContent='QTY TYPE';if(sh)sh.children[1].textContent='QTY TYPE';[...$('orderRows').rows].forEach((r,i)=>{const o=[...db.orders].reverse()[i];if(o){r.cells[4].textContent=o.lines.map(l=>qt(l.qty,lt(l))).join(' + ');r.cells[5].textContent=o.lines.map(l=>qt(orderLineSold(o.no,l.productCode,lt(l)),lt(l))).join(' + ');r.cells[6].textContent=o.lines.map(l=>qt(Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),lt(l))).join(' + ')}});[...$('salesRows').rows].forEach((r,i)=>{const s=[...db.sales].reverse()[i];if(s)r.cells[5].textContent=qt(s.qty,st(s))});const active=db.orders.filter(o=>o.status!=='Cancelled');const byUnit=(rows)=>{const sums={};rows.forEach(x=>{const u=x.u||'QTL';sums[u]=(sums[u]||0)+Number(x.q||0)});return Object.entries(sums).map(([u,q])=>qt(q,u)).join(' · ')||'0'};$('mOrdered').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:l.qty,u:lt(l)}))));$('mBalance').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),u:lt(l)}))));$('saleSO').innerHTML='<option value="">Select open order</option>'+active.filter(o=>orderStatus(o)==='Ongoing').map(o=>`<option value="${esc(o.no)}">${esc(o.no)} · ${esc(o.party)} · ${o.lines.map(l=>qt(Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),lt(l))).join(' + ')}</option>`).join('');if($('saleSO').value)loadSaleLines()};
+  $('salesForm').onsubmit=e=>{
+    e.preventDefault();
+    const party=$('saleSO').value;
+    if(!party)return alert('Select a party.');
+    const rows=[...$('saleLines').rows].filter(r=>r.querySelector('.sl-qty'));
+    const requested=rows.map(r=>({productCode:r.dataset.code,qtyType:r.dataset.qtyType,qty:Number(r.querySelector('.sl-qty')?.value||0),rate:Number(r.querySelector('.sl-rate')?.value||0),sources:JSON.parse(r.dataset.sources||'[]')})).filter(x=>x.qty>0);
+    if(!requested.length)return alert('Enter a dispatch quantity for at least one product.');
+    const allocations=[];
+    for(const l of requested){
+      let remaining=l.qty;
+      const matches=l.sources.filter(x=>Math.abs(Number(x.rate)-l.rate)<0.005);
+      for(const src of matches){
+        if(remaining<=1e-8)break;
+        const q=Math.min(remaining,src.balance);
+        if(q>0){allocations.push({source:src,l,qty:q});remaining-=q;}
+      }
+      if(remaining>1e-8){
+        return alert('Insufficient matching Sales Order balance for '+l.productCode+' @ ₹'+fmt(l.rate)+'. Short: '+fmt(remaining)+' '+l.qtyType);
+      }
+    }
+    const b='DS'+Date.now();
+    allocations.forEach((a,i)=>db.sales.push({id:b+'-'+i,date:$('saleDate').value,so:a.source.so,party:party,partyCode:db.orders.find(o=>o.no===a.source.so)?.partyCode||'',invoice:$('saleInvoice').value.trim(),productCode:a.l.productCode,qty:a.qty,qty_type:a.l.qtyType,rate:a.l.rate,remarks:$('saleRemarks').value}));
+    save();e.target.reset();$('saleDate').value=today;clearSaleLines();
+    alert('Dispatch saved. '+allocations.length+' SO allocation(s) created automatically.');
+  };
+  const oldRender=window.render;window.render=function(){normalize();oldRender();const oh=document.querySelector('#orders .lines thead tr'),sh=document.querySelector('#sales .lines thead tr');if(oh)oh.children[1].textContent='QTY TYPE';if(sh)sh.children[1].textContent='QTY TYPE';[...$('orderRows').rows].forEach((r,i)=>{const o=[...db.orders].reverse()[i];if(o){r.cells[4].textContent=o.lines.map(l=>qt(l.qty,lt(l))).join(' + ');r.cells[5].textContent=o.lines.map(l=>qt(orderLineSold(o.no,l.productCode,lt(l)),lt(l))).join(' + ');r.cells[6].textContent=o.lines.map(l=>qt(Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),lt(l))).join(' + ')}});[...$('salesRows').rows].forEach((r,i)=>{const s=[...db.sales].reverse()[i];if(s)r.cells[5].textContent=qt(s.qty,st(s))});const active=db.orders.filter(o=>o.status!=='Cancelled');const byUnit=(rows)=>{const sums={};rows.forEach(x=>{const u=x.u||'QTL';sums[u]=(sums[u]||0)+Number(x.q||0)});return Object.entries(sums).map(([u,q])=>qt(q,u)).join(' · ')||'0'};$('mOrdered').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:l.qty,u:lt(l)}))));$('mBalance').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),u:lt(l)}))));const parties=[...new Set(active.filter(o=>orderStatus(o)==='Ongoing').map(o=>o.party).filter(Boolean))];$('saleSO').innerHTML='<option value="">Select party</option>'+parties.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');if($('saleSO').value)loadSaleLines()};
   normalize();
 })();
 
