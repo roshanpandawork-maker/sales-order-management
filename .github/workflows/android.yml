@@ -37,13 +37,9 @@ jobs:
           cp index.html android/app/src/main/assets/www/
           cp -r css js vendor android/app/src/main/assets/www/
 
-      - name: Generate Gradle wrapper
-        working-directory: android
-        run: gradle wrapper --gradle-version 8.13 --distribution-type bin
-
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
