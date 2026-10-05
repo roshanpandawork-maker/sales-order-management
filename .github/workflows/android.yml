@@ -25,8 +25,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Prepare web bundle
+        run: |
+          rm -rf www
+          mkdir -p www
+          cp index.html www/
+          cp -r css js vendor www/
+
       - name: Add Android platform
         run: npx cap add android
+
+      - name: Generate Android app icon
+        run: npx @capacitor/assets generate --android --assetPath assets --iconBackgroundColor '#0f172a' --iconBackgroundColorDark '#0f172a'
 
       - name: Sync web app
         run: npx cap sync android
@@ -38,11 +48,8 @@ jobs:
           from pathlib import Path
           p=Path("android/app/src/main/AndroidManifest.xml")
           s=p.read_text()
-          marker='<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
-          perms='''<uses-permission android:name="android.permission.INTERNET" />
-          <uses-permission android:name="android.permission.RECORD_AUDIO" />'''
           if "android.permission.RECORD_AUDIO" not in s:
-              s=s.replace(marker, marker+"\n"+perms)
+              s=s.replace("<manifest xmlns:android=", "<uses-permission android:name=\"android.permission.RECORD_AUDIO\" />\n<manifest xmlns:android=")
           p.write_text(s)
           PY
 
