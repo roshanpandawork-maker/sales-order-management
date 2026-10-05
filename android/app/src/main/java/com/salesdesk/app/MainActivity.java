@@ -49,6 +49,9 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setDatabaseEnabled(true);
         webView.getSettings().setAllowFileAccess(true);
+        webView.getSettings().setAllowFileAccessFromFileURLs(false);
+        webView.getSettings().setAllowUniversalAccessFromFileURLs(false);
+        webView.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         webView.getSettings().setAllowContentAccess(true);
         webView.getSettings().setBuiltInZoomControls(false);
         webView.getSettings().setDisplayZoomControls(false);
@@ -59,7 +62,13 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return false;
+                Uri uri = request.getUrl();
+                String scheme = uri.getScheme();
+                String host = uri.getHost();
+                if ("file".equalsIgnoreCase(scheme) && uri.getPath() != null && uri.getPath().startsWith("/android_asset/www/")) return false;
+                if ("https".equalsIgnoreCase(scheme) && "noldgjtoqhwefqdzdpzs.supabase.co".equalsIgnoreCase(host)) return false;
+                try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
+                return true;
             }
         });
 
@@ -262,6 +271,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         @JavascriptInterface
         public void speak(String text) {
             runOnUiThread(() -> {
+                if (text == null || text.length() > 1000) return;
                 if (tts != null && !text.isEmpty()) {
                     tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "salesdesk");
                 }
