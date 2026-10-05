@@ -142,6 +142,7 @@
 
   document.addEventListener("DOMContentLoaded",()=>{
     $("voiceBtn")?.addEventListener("click",()=>{openVoice();addTestControls()});
+    $("mobileVoiceFab")?.addEventListener("click",()=>{openVoice();addTestControls()});
     $("voiceStart")?.addEventListener("click",startListening);
   });
 })();
