@@ -217,15 +217,17 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   window.partyLiveWhatsApp=async function(code){
     const p=db.parties.find(x=>x.code===code); if(!p)return;
     try{
-      const {data,error}=await supabaseClient.from('party_public_links').select('token').eq('party_code',code).eq('active',true).limit(1).maybeSingle();
+      const {data,error}=await supabaseClient.from('party_public_links').select('token,public_slug').eq('party_code',code).eq('active',true).limit(1).maybeSingle();
       if(error)throw error;
-      let token=data?.token;
-      if(!token){
-        token=makeToken();
-        const ins=await supabaseClient.from('party_public_links').insert({party_code:code,token,active:true}).select('token').single();
+      let token=data?.token, slug=data?.public_slug;
+      if(!token||!slug){
+        token=token||makeToken();
+        slug=slug||('c-'+Array.from(crypto.getRandomValues(new Uint8Array(6)),b=>b.toString(16).padStart(2,'0')).join(''));
+        const ins=await supabaseClient.from('party_public_links').upsert({party_code:code,token,public_slug:slug,active:true},{onConflict:'party_code'}).select('token,public_slug').single();
         if(ins.error)throw ins.error;
+        slug=ins.data.public_slug;
       }
-      const url=new URL('p/',location.href);url.hash='token='+encodeURIComponent(token);
+      const url=new URL('p/'+encodeURIComponent(slug),location.href);
       const message='Hello '+p.name+',%0A%0AYou can check your live Sales Order balance here:%0A'+encodeURIComponent(url.href)+'%0A%0AThe quantity updates automatically after dispatch.';
       const phone=String(p.phone||'').replace(/\D/g,'');
       const wa=phone?'https://wa.me/'+(phone.length===10?'91':'')+phone+'?text='+message:'https://wa.me/?text='+message;
@@ -235,15 +237,17 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   window.partyLiveLink=async function(code){
     const p=db.parties.find(x=>x.code===code); if(!p)return;
     try{
-      const {data,error}=await supabaseClient.from('party_public_links').select('token').eq('party_code',code).eq('active',true).limit(1).maybeSingle();
+      const {data,error}=await supabaseClient.from('party_public_links').select('token,public_slug').eq('party_code',code).eq('active',true).limit(1).maybeSingle();
       if(error)throw error;
-      let token=data?.token;
-      if(!token){
-        token=makeToken();
-        const ins=await supabaseClient.from('party_public_links').insert({party_code:code,token,active:true}).select('token').single();
+      let token=data?.token, slug=data?.public_slug;
+      if(!token||!slug){
+        token=token||makeToken();
+        slug=slug||('c-'+Array.from(crypto.getRandomValues(new Uint8Array(6)),b=>b.toString(16).padStart(2,'0')).join(''));
+        const ins=await supabaseClient.from('party_public_links').upsert({party_code:code,token,public_slug:slug,active:true},{onConflict:'party_code'}).select('token,public_slug').single();
         if(ins.error)throw ins.error;
+        slug=ins.data.public_slug;
       }
-      const url=new URL('p/',location.href);url.hash='token='+encodeURIComponent(token);
+      const url=new URL('p/'+encodeURIComponent(slug),location.href);
       try{await navigator.clipboard.writeText(url.href);alert('Live balance link copied for '+p.name+'.\n\n'+url.href)}
       catch(_){prompt('Copy this live balance link for '+p.name,url.href)}
     }catch(e){alert('Could not create live party link: '+(e.message||e))}
