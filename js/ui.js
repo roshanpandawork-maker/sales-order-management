@@ -167,12 +167,12 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   if(!nav||!sub||!grid)return;
   const groups={
     overview:{label:'Home',items:[['dashboard','Overview']]},
-    sales:{label:'Sales',items:[['orders','Sales Orders'],['sales','Sales / Dispatch'],['parties','Party Master'],['products','Products & Prices'],['balances','Party Balances']]},
+    sales:{label:'Sales',items:[['orders','Sales Orders'],['sales','Sales / Dispatch'],['parties','Party Master'],['products','Products & Prices'],['balances','Party Balances'],['quotations','Quotations'],['priceboard','Price Board']]},
     purchase:{label:'Purchase',items:[['purchase','Purchase WhatsApp']]},
-    finance:{label:'Finance',items:[['invoices','Invoices (GST)'],['payments','Payments'],['reports','Reports']]},
+    finance:{label:'Finance',items:[['invoices','Invoices (GST)'],['payments','Payments'],['reports','Reports'],['financeCenter','Finance Center'],['requests','Customer Requests'],['approvals','Approvals'],['notifications','Notifications'],['auditCenter','Audit Center']]},
     more:{label:'More',items:[['inventory','Inventory']]}
   };
-  const icon={dashboard:'⌂',orders:'▣',sales:'↗',parties:'♙',products:'◈',balances:'₹',purchase:'⇩',inventory:'▤',invoices:'▤',payments:'●',reports:'▥'};
+  const icon={dashboard:'⌂',orders:'▣',sales:'↗',parties:'♙',products:'◈',balances:'₹',quotations:'⌑',priceboard:'◆',purchase:'⇩',inventory:'▤',invoices:'▤',payments:'●',reports:'▥',financeCenter:'▤',requests:'◌',approvals:'✓',notifications:'●',auditCenter:'◌'};
   const isMobile=()=>window.matchMedia('(max-width:900px)').matches;
   function activate(tab){
     const b=document.querySelector('.tab[data-tab="'+tab+'"]');
