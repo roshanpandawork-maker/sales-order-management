@@ -27,15 +27,19 @@ h1{margin:6px 0 4px;font-size:28px}h2{margin:0 0 4px;font-size:18px}.updated{fon
 <script>
 const SUPABASE_URL='https://noldgjtoqhwefqdzdpzs.supabase.co';
 const SUPABASE_KEY='sb_publishable_ZnaKalL6dJvrQjWE4k5zAw_h2A62Obq';
+const pathParts=location.pathname.split('/').filter(Boolean);
+const slug=pathParts[pathParts.length-1] && pathParts[pathParts.length-1]!=='p' ? decodeURIComponent(pathParts[pathParts.length-1]) : '';
 const qs=new URLSearchParams(location.search);
 const token=qs.get('token')||new URLSearchParams((location.hash||'').replace(/^#/,'')).get('token');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:3});
 async function load(){
  const status=document.getElementById('status'),err=document.getElementById('error');
- if(!token){status.textContent='Invalid link';err.style.display='block';err.textContent='This party link is missing its access token.';return}
+ if(!slug&&!token){status.textContent='Invalid link';err.style.display='block';err.textContent='This party link is missing its access code.';return}
  try{
-  const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/get_party_live_balance',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_token:token})});
+  const rpc=slug?'get_party_live_balance_by_slug':'get_party_live_balance';
+  const body=slug?{p_slug:slug}:{p_token:token};
+  const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+rpc,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data=await res.json(); if(!res.ok)throw new Error(data.message||'Unable to load balance');
   err.style.display='none';status.textContent='● Live';
   const party=data[0]?.party_name||'Party';
