@@ -225,7 +225,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
         const ins=await supabaseClient.from('party_public_links').insert({party_code:code,token,active:true}).select('token').single();
         if(ins.error)throw ins.error;
       }
-      const url=new URL('party.html',location.href);url.searchParams.set('token',token);
+      const url=new URL('p/',location.href);url.hash='token='+encodeURIComponent(token);
       const message='Hello '+p.name+',%0A%0AYou can check your live Sales Order balance here:%0A'+encodeURIComponent(url.href)+'%0A%0AThe quantity updates automatically after dispatch.';
       const phone=String(p.phone||'').replace(/\D/g,'');
       const wa=phone?'https://wa.me/'+(phone.length===10?'91':'')+phone+'?text='+message:'https://wa.me/?text='+message;
@@ -243,7 +243,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
         const ins=await supabaseClient.from('party_public_links').insert({party_code:code,token,active:true}).select('token').single();
         if(ins.error)throw ins.error;
       }
-      const url=new URL('party.html',location.href);url.searchParams.set('token',token);
+      const url=new URL('p/',location.href);url.hash='token='+encodeURIComponent(token);
       try{await navigator.clipboard.writeText(url.href);alert('Live balance link copied for '+p.name+'.\n\n'+url.href)}
       catch(_){prompt('Copy this live balance link for '+p.name,url.href)}
     }catch(e){alert('Could not create live party link: '+(e.message||e))}
