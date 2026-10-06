@@ -228,7 +228,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
         slug=ins.data.public_slug;
       }
       const url=new URL('p/'+encodeURIComponent(slug),location.href);
-      const message='Hello '+p.name+',%0A%0AYou can check your live Sales Order balance here:%0A'+encodeURIComponent(url.href)+'%0A%0AThe quantity updates automatically after dispatch.';
+      const message='Hello '+p.name+',%0A%0A📦 *LIVE SALES ORDER BALANCE*%0A%0AYour Sales Order balance is updated automatically after every dispatch.%0A%0A👉 *OPEN LIVE BALANCE*%0A'+encodeURIComponent(url.href)+'%0A%0AThank you.';
       const phone=String(p.phone||'').replace(/\D/g,'');
       const wa=phone?'https://wa.me/'+(phone.length===10?'91':'')+phone+'?text='+message:'https://wa.me/?text='+message;
       window.open(wa,'_blank','noopener');
