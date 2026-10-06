@@ -1,0 +1,13 @@
+(function(){
+"use strict";
+const $=id=>document.getElementById(id),sb=()=>window.supabaseClient;
+const e=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function invoiceForm(){
+ const s=$("financeCenter");if(!s||s.querySelector("#saveInvoice"))return;
+ const parties=(db.parties||[]).map(p=>'<option value="'+e(p.code)+'">'+e(p.name)+'</option>').join("");
+ const products=(db.products||[]).map(p=>'<option value="'+e(p.code)+'">'+e(p.name)+'</option>').join("");
+ s.insertAdjacentHTML("afterbegin",'<div class="panel"><h3>Create GST invoice</h3><div class="grid"><div class="field"><label>Party</label><select id="txIP"><option value="">Select</option>'+parties+'</select></div><div class="field"><label>Invoice date</label><input id="txID" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div><div class="field"><label>Product</label><select id="txIX"><option value="">Select</option>'+products+'</select></div><div class="field"><label>Quantity</label><input id="txIQ" type="number" min=".001" step=".001"></div><div class="field"><label>Rate</label><input id="txIR" type="number" min="0" step=".01"></div><div class="field"><label>GST %</label><input id="txIG" type="number" min="0" max="100" step=".01"></div></div><button class="primary" id="saveInvoice">Create invoice</button></div>');
+ $("saveInvoice").onclick=async()=>{const party=$("txIP").value,product=$("txIX").value,qty=Number($("txIQ").value),rate=Number($("txIR").value),gst=Number($("txIG").value||0);if(!party||!product||qty<=0||rate<0)return alert("Complete invoice details.");const taxable=qty*rate,gstAmount=taxable*gst/100,total=taxable+gstAmount,no="INV-"+String(Date.now()).slice(-8);const h=await sb().from("invoices").insert({invoice_no:no,party_code:party,invoice_date:$("txID").value,subtotal:taxable,cgst:gstAmount/2,sgst:gstAmount/2,grand_total:total,status:"ISSUED"}).select().single();if(h.error)return alert(h.error.message);const l=await sb().from("invoice_lines").insert({invoice_id:h.data.id,product_code:product,description:(db.products.find(x=>x.code===product)||{}).name||product,hsn:(db.products.find(x=>x.code===product)||{}).hsn||null,unit:(db.products.find(x=>x.code===product)||{}).unit||null,quantity:qty,rate,gst_rate:gst,taxable,gst_amount:gstAmount,total});if(l.error)return alert(l.error.message);alert(no+" created.");window.location.reload()};
+}
+document.addEventListener("DOMContentLoaded",()=>setTimeout(invoiceForm,1300));
+})();
