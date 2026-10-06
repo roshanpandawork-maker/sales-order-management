@@ -181,8 +181,18 @@ function editProduct(code){
 let started=false;
 async function startApp(){
   if(started)return;started=true;
-  const {data:role}=await supabaseClient.rpc('my_role');
-  if(!role){alert('Your account is not authorised for SalesDesk. Contact the administrator.');await supabaseClient.auth.signOut();location.reload();return}
+  const roleCheck=await supabaseClient.rpc('my_role');
+  if(roleCheck.error){
+    console.error('SalesDesk role check failed:',roleCheck.error);
+    $('loginMsg').textContent='Could not verify your SalesDesk access. Please refresh and try again.';
+    started=false;
+    return;
+  }
+  if(!roleCheck.data){
+    $('loginMsg').textContent='Your account is not authorised for SalesDesk. Contact the administrator.';
+    await supabaseClient.auth.signOut();
+    return;
+  }
   $('loginBox').classList.add('hidden');SD_SECURITY.armIdleLogout(()=>logout());
   const ok=await load();
   $('soDate').value=today;$('saleDate').value=today;
