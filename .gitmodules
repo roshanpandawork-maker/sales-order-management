@@ -1,3 +1,21 @@
 [submodule "reference/ui-ux-pro-max-skill"]
 	path = reference/ui-ux-pro-max-skill
 	url = https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git
+[submodule "reference/shadcn-ui"]
+	path = reference/shadcn-ui
+	url = https://github.com/shadcn-ui/ui.git
+[submodule "reference/awesome-design-systems"]
+	path = reference/awesome-design-systems
+	url = https://github.com/alexpate/awesome-design-systems.git
+[submodule "reference/owasp-asvs"]
+	path = reference/owasp-asvs
+	url = https://github.com/OWASP/ASVS.git
+[submodule "reference/owasp-zap"]
+	path = reference/owasp-zap
+	url = https://github.com/zaproxy/zaproxy.git
+[submodule "reference/semgrep"]
+	path = reference/semgrep
+	url = https://github.com/semgrep/semgrep.git
+[submodule "reference/playwright"]
+	path = reference/playwright
+	url = https://github.com/microsoft/playwright.git
