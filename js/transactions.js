@@ -62,7 +62,7 @@ async function injectPayment(){
  $("savePayment").onclick=async()=>{
   const party=$("txPP").value,invoice=$("txPI").value,amount=Number($("txPA").value);
   if(!party||amount<=0)return alert("Enter party and a valid payment amount.");
-  const r=await sb().from("payments").insert({receipt_no:"RC-"+String(Date.now()).slice(-8),party_code:party,payment_date:$("txPD").value,amount,mode:$("txPM").value,reference_no:$("txPR").value||null}).select("id,receipt_no").single();
+  const r=await sb().from("payments").insert({receipt_no:"RC-"+String(Date.now()).slice(-8),party_code:party,payment_date:$("txPD").value,amount,payment_method:$("txPM").value,reference_number:$("txPR").value||null}).select("id,receipt_no").single();
   if(r.error)return alert(r.error.message);
   if(invoice){
    const max=Number($("txPI").selectedOptions[0]?.dataset.balance||0);
