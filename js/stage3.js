@@ -260,10 +260,8 @@ function wire(){
 function init(){
   if(!sb()||window.__sdStage3Init)return;
   window.__sdStage3Init=true;wire();
-  sb().auth.onAuthStateChange((event,session)=>{
-    if(session)setTimeout(loadAll,150);
-  });
-  sb().auth.getSession().then(r=>{if(r.data?.session)loadAll()});
+  window.addEventListener("salesdesk:ready",()=>setTimeout(loadAll,100));
+  sb().auth.getSession().then(r=>{if(r.data?.session && db.parties.length)setTimeout(loadAll,100)});
   window.SD_STAGE3={reload:loadAll};
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
