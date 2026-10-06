@@ -210,3 +210,26 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   });
   window.addEventListener('resize',()=>{if(!isMobile())sub.classList.add('hidden')});
 })();
+
+(function(){
+  const makeToken=()=>{const a=new Uint8Array(24);crypto.getRandomValues(a);return 'sd_pt_'+Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')};
+  window.partyLiveLink=async function(code){
+    const p=db.parties.find(x=>x.code===code); if(!p)return;
+    try{
+      const {data,error}=await supabaseClient.from('party_public_links').select('token').eq('party_code',code).eq('active',true).limit(1).maybeSingle();
+      if(error)throw error;
+      let token=data?.token;
+      if(!token){
+        token=makeToken();
+        const ins=await supabaseClient.from('party_public_links').insert({party_code:code,token,active:true}).select('token').single();
+        if(ins.error)throw ins.error;
+      }
+      const url=new URL('party.html',location.href);url.searchParams.set('token',token);
+      try{await navigator.clipboard.writeText(url.href);alert('Live balance link copied for '+p.name+'.\n\n'+url.href)}
+      catch(_){prompt('Copy this live balance link for '+p.name,url.href)}
+    }catch(e){alert('Could not create live party link: '+(e.message||e))}
+  };
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('[data-act="partyLiveLink"]');if(b)partyLiveLink(b.dataset.arg);
+  });
+})();
