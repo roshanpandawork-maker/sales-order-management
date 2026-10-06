@@ -27,7 +27,8 @@ h1{margin:6px 0 4px;font-size:28px}h2{margin:0 0 4px;font-size:18px}.updated{fon
 <script>
 const SUPABASE_URL='https://noldgjtoqhwefqdzdpzs.supabase.co';
 const SUPABASE_KEY='sb_publishable_ZnaKalL6dJvrQjWE4k5zAw_h2A62Obq';
-const qs=new URLSearchParams(location.search);\nconst token=qs.get('token')||new URLSearchParams((location.hash||'').replace(/^#/,'')).get('token');
+const qs=new URLSearchParams(location.search);
+const token=qs.get('token')||new URLSearchParams((location.hash||'').replace(/^#/,'')).get('token');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:3});
 async function load(){
