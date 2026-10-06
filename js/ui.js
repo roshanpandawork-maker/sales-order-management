@@ -213,6 +213,25 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
 (function(){
   const makeToken=()=>{const a=new Uint8Array(24);crypto.getRandomValues(a);return 'sd_pt_'+Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')};
+
+  window.partyLiveWhatsApp=async function(code){
+    const p=db.parties.find(x=>x.code===code); if(!p)return;
+    try{
+      const {data,error}=await supabaseClient.from('party_public_links').select('token').eq('party_code',code).eq('active',true).limit(1).maybeSingle();
+      if(error)throw error;
+      let token=data?.token;
+      if(!token){
+        token=makeToken();
+        const ins=await supabaseClient.from('party_public_links').insert({party_code:code,token,active:true}).select('token').single();
+        if(ins.error)throw ins.error;
+      }
+      const url=new URL('party.html',location.href);url.searchParams.set('token',token);
+      const message='Hello '+p.name+',%0A%0AYou can check your live Sales Order balance here:%0A'+encodeURIComponent(url.href)+'%0A%0AThe quantity updates automatically after dispatch.';
+      const phone=String(p.phone||'').replace(/\D/g,'');
+      const wa=phone?'https://wa.me/'+(phone.length===10?'91':'')+phone+'?text='+message:'https://wa.me/?text='+message;
+      window.open(wa,'_blank','noopener');
+    }catch(e){alert('Could not create WhatsApp link: '+(e.message||e))}
+  };
   window.partyLiveLink=async function(code){
     const p=db.parties.find(x=>x.code===code); if(!p)return;
     try{
@@ -231,5 +250,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   };
   document.addEventListener('click',e=>{
     const b=e.target.closest('[data-act="partyLiveLink"]');if(b)partyLiveLink(b.dataset.arg);
+    const w=e.target.closest('[data-act="partyLiveWhatsApp"]');
+    if(w) partyLiveWhatsApp(w.dataset.arg);
   });
 })();
