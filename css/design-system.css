@@ -211,3 +211,11 @@ tbody tr:nth-child(even) td{background:#fbfcfe}
 [data-theme=dark] .sd-command-item:hover,.sd-command-item.active{background:#1b314a}
 [data-theme=dark] .sd-quickbar .quick,.sd-quickbar .quick:hover,.workflow-step{background:#132131;border-color:#26384b;color:#dce7f2}
 [data-theme=dark] #globalSearch{background:#ffffff12;border-color:#ffffff22}
+
+.erpSidebarNav kbd{
+  margin-left:auto;padding:2px 5px;border-radius:5px;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+  color:#8fa5ba;font:600 8px/1.2 Inter,"Segoe UI",Arial,sans-serif;
+}
+.erpSidebarNav .tab.active kbd{color:#fff;border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.1)}
+@media(max-width:900px){.erpSidebarNav kbd{display:none}}
