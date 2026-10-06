@@ -52,9 +52,9 @@ async function load() {
     document.getElementById("rows").innerHTML = data.length
       ? data.map(x =>
           "<tr><td><b>" + esc(x.product_name || x.product_code) + "</b></td>" +
-          "<td>" + esc(x.unit) + "</td><td class="rate">₹" + fmt(x.rate) + "</td>" +
+          "<td>" + esc(x.unit) + "</td><td class=\"rate\">₹" + fmt(x.rate) + "</td>" +
           "<td>" + fmt(x.ordered) + "</td><td>" + fmt(x.dispatched) + "</td>" +
-          "<td class="balance">" + fmt(x.balance) + "</td></tr>"
+          "<td class=\"balance\">" + fmt(x.balance) + "</td></tr>"
         ).join("")
       : '<tr><td colspan="6" class="empty">No open quantity is currently available.</td></tr>';
   } catch (e) {
