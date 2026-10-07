@@ -28,10 +28,13 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
+      - name: Build web distribution
+        run: npm run build:web
+
       - name: Upload SalesDesk site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: .
+          path: dist
 
       - name: Deploy SalesDesk
         id: deployment
