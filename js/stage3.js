@@ -3,7 +3,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const sb=()=>window.supabaseClient;
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const esc=window.esc;
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const qty=n=>Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:3});
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
