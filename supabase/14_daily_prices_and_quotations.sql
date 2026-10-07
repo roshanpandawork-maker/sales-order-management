@@ -109,3 +109,15 @@ begin
 end $$;
 revoke execute on function public.get_party_portal_by_slug(text) from public;
 grant execute on function public.get_party_portal_by_slug(text) to anon;
+
+
+create or replace function public.create_customer_quote_request_by_slug(p_slug text,p_product_code text,p_quantity numeric,p_message text default null)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_token text;
+begin
+ select token into v_token from public.party_public_links where public_slug=p_slug and active=true limit 1;
+ if v_token is null then return jsonb_build_object('ok',false,'error','Invalid or inactive customer link'); end if;
+ return public.create_customer_quote_request(v_token,p_product_code,p_quantity,p_message);
+end $$;
+revoke execute on function public.create_customer_quote_request_by_slug(text,text,numeric,text) from public;
+grant execute on function public.create_customer_quote_request_by_slug(text,text,numeric,text) to anon;
