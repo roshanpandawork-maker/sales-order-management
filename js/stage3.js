@@ -30,27 +30,39 @@ function activePartyPrice(party,product){
   return data.prices.find(x=>x.party_code===party&&x.product_code===product&&(!x.valid_to||x.valid_to>=today()));
 }
 async function loadAll(){
-  if(loading||!sb())return;
+  if(loading||!sb())return false;
   loading=true;
-  const queries=await Promise.all([
-    sb().from("party_receivable_summary").select("*").order("outstanding_amount",{ascending:false}),
-    sb().from("party_ledger").select("*").order("transaction_date",{ascending:true}),
-    sb().from("party_product_prices").select("*").order("valid_from",{ascending:false}),
-    sb().from("daily_product_prices").select("*").order("valid_date",{ascending:false}).limit(500),
-    sb().from("price_history").select("*").order("effective_from",{ascending:false}).limit(250),
-    sb().from("quotations").select("*,quotation_lines(*)").order("quotation_date",{ascending:false}).limit(100),
-    sb().from("inventory_balances").select("*").order("product_name",{ascending:true}),
-    sb().from("inventory_ledger").select("*").order("movement_date",{ascending:false}).limit(250),
-    sb().from("party_requests").select("*").order("requested_at",{ascending:false}).limit(250),
-    sb().from("approvals").select("*").order("created_at",{ascending:false}).limit(250),
-    sb().from("notifications").select("*").order("created_at",{ascending:false}).limit(100)
-  ]);
-  const names=["summary","ledger","prices","daily","history","quotes","stock","moves","requests","approvals","notes"];
-  queries.forEach((r,i)=>{
-    if(r.error) console.warn("Stage 3 "+names[i]+" load:",r.error);
-    data[names[i]]=r.data||[];
-  });
-  loaded=true;loading=false;renderAll();
+  try{
+    const queries=await Promise.all([
+      sb().from("party_receivable_summary").select("*").order("outstanding_amount",{ascending:false}),
+      sb().from("party_ledger").select("*").order("transaction_date",{ascending:true}),
+      sb().from("party_product_prices").select("*").order("valid_from",{ascending:false}),
+      sb().from("daily_product_prices").select("*").order("valid_date",{ascending:false}).limit(500),
+      sb().from("price_history").select("*").order("effective_from",{ascending:false}).limit(250),
+      sb().from("quotations").select("*,quotation_lines(*)").order("quotation_date",{ascending:false}).limit(100),
+      sb().from("inventory_balances").select("*").order("product_name",{ascending:true}),
+      sb().from("inventory_ledger").select("*").order("movement_date",{ascending:false}).limit(250),
+      sb().from("party_requests").select("*").order("requested_at",{ascending:false}).limit(250),
+      sb().from("approvals").select("*").order("created_at",{ascending:false}).limit(250),
+      sb().from("notifications").select("*").order("created_at",{ascending:false}).limit(100)
+    ]);
+    const names=["summary","ledger","prices","daily","history","quotes","stock","moves","requests","approvals","notes"];
+    queries.forEach((r,i)=>{
+      if(r.error) console.warn("Stage 3 "+names[i]+" load:",r.error);
+      data[names[i]]=r.data||[];
+    });
+    loaded=true;
+    renderAll();
+    return true;
+  }catch(err){
+    console.error("Stage 3 load failed:",err);
+    const board=$("priceboard");
+    if(board)board.innerHTML=shell("Daily Prices & Live Price Board","Could not load the daily price board.",
+      '<div class="notice"><b>Price board could not load.</b> Please refresh once. If it still fails, check the browser console for the exact database error.</div>');
+    return false;
+  }finally{
+    loading=false;
+  }
 }
 function renderAll(){
   renderLedger();
@@ -322,11 +334,21 @@ function wire(){
   });
 }
 function init(){
-  if(!sb()||window.__sdStage3Init)return;
-  window.__sdStage3Init=true;wire();
-  window.addEventListener("salesdesk:ready",()=>setTimeout(loadAll,100));
-  sb().auth.getSession().then(r=>{if(r.data?.session && db.parties.length)setTimeout(loadAll,100)});
+  if(window.__sdStage3Init)return;
+  window.__sdStage3Init=true;
+  wire();
   window.SD_STAGE3={reload:loadAll};
+  const waitForSession=async()=>{
+    if(loaded||loading)return;
+    if(!sb()){setTimeout(waitForSession,250);return}
+    try{
+      const r=await sb().auth.getSession();
+      if(r.data?.session){await loadAll();return}
+    }catch(err){console.warn("Stage 3 session check:",err)}
+    setTimeout(waitForSession,500);
+  };
+  window.addEventListener("salesdesk:ready",()=>setTimeout(waitForSession,100));
+  waitForSession();
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
