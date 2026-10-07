@@ -219,3 +219,79 @@ tbody tr:nth-child(even) td{background:#fbfcfe}
 #quotations .metrics,#priceboard .metrics,#financeCenter .metrics,#inventory .metrics,#reports .metrics{margin-bottom:16px}
 #quotations h3,#financeCenter h3,#inventory h3{margin:20px 0 10px}
 #requests .pill,#approvals .pill,#notifications .pill{white-space:nowrap}
+
+
+/* =========================================================
+   SalesDesk UI/UX Refresh — Enterprise SaaS 2026
+   Presentation-only overrides. No auth, data, or backend logic.
+   ========================================================= */
+:root{
+  --sd-bg:#f6f8fc;
+  --sd-surface:#ffffff;
+  --sd-surface-2:#f8fafc;
+  --sd-text:#172033;
+  --sd-muted:#6b778c;
+  --sd-border:#e6eaf0;
+  --sd-primary:#4f46e5;
+  --sd-primary-strong:#4338ca;
+  --sd-navy:#111827;
+  --sd-radius:12px;
+  --sd-shadow:0 1px 2px rgba(15,23,42,.03),0 8px 24px rgba(15,23,42,.045);
+  --sd-shadow-lg:0 24px 70px rgba(15,23,42,.16);
+}
+body{background:var(--sd-bg);color:var(--sd-text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.01em}
+header{background:rgba(17,24,39,.97);backdrop-filter:blur(16px);min-height:68px;padding-top:12px;padding-bottom:12px;box-shadow:0 1px 0 rgba(255,255,255,.07),0 8px 30px rgba(15,23,42,.12)}
+header .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 7px 20px rgba(79,70,229,.3)}
+header h1{font-size:18px;letter-spacing:-.55px} header p{font-size:10px;color:#aeb8c8}
+.toolbar{gap:6px}.toolbar .secondary{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.13);color:#e7ebf2}.toolbar .secondary:hover{background:rgba(255,255,255,.12)}
+#globalSearch{height:38px;min-height:38px;width:min(340px,31vw);border-radius:9px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.13);font-size:12px}
+.wrap{padding-top:18px}
+.notice{border:1px solid #e3e8f2;background:#fff;color:#59677b;box-shadow:0 1px 2px rgba(15,23,42,.025);padding:9px 13px;font-size:11px}
+.notice:before{content:"✓";width:21px;height:21px;display:grid;place-items:center;border-radius:50%;background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:800}
+/* Desktop sidebar: quieter, denser, more app-like. */
+@media(min-width:901px){
+  header,.wrap{margin-left:248px}
+  nav.tabs.erpSidebarNav{width:248px;background:#111827;padding:16px 10px 14px;box-shadow:1px 0 0 rgba(255,255,255,.05),12px 0 32px rgba(15,23,42,.08)}
+  nav.tabs.erpSidebarNav:before{content:"SALESDESK";display:block;color:#f8fafc;font-size:13px;font-weight:800;letter-spacing:.09em;padding:2px 12px 18px}
+  .erpSidebarNav .nav-group{border:0!important;padding:0 0 7px!important;margin:0 0 4px!important}
+  .erpSidebarNav .nav-title{height:28px;color:#7f8ca1;font-size:9px;letter-spacing:.12em;padding:0 11px}
+  .erpSidebarNav .nav-items{gap:1px!important}
+  .erpSidebarNav .nav-group .tab{min-height:36px;border-radius:8px;padding:7px 10px;color:#b9c3d0;font-size:12px}
+  .erpSidebarNav .nav-group .tab:hover{background:rgba(255,255,255,.055);color:#fff}
+  .erpSidebarNav .nav-group .tab.active{background:#4f46e5;color:#fff;box-shadow:0 5px 14px rgba(79,70,229,.24)}
+  .erpSidebarNav .navIcon{width:20px;font-size:12px;color:#8895a8}
+  .erpSidebarNav .tab.active .navIcon{color:#fff}
+  .erpSidebarNav kbd{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.09)}
+}
+/* Page hierarchy */
+.sd-section-title{margin:4px 0 16px}.sd-section-title h2{font-size:20px;letter-spacing:-.55px}.sd-section-title p{font-size:12px}
+.sd-section-title .tag{background:#eef2ff;border-color:#dfe4ff;color:#4f46e5}
+.sd-quickbar{gap:7px;margin-bottom:14px}.sd-quickbar .quick{height:36px;padding:7px 11px;border-radius:9px;background:#fff;border-color:#e2e7ef;color:#46546a;font-size:11px;box-shadow:0 1px 2px rgba(15,23,42,.025)}
+.sd-quickbar .quick:hover{background:#f7f7ff;border-color:#cfd5ff;color:#4f46e5;transform:translateY(-1px)}
+.workflow{gap:6px;margin-bottom:14px}.workflow-step{padding:10px 11px;border-radius:10px;background:#fff;border-color:#e5e9f0}.workflow-step strong{font-size:11px}.workflow-step span{font-size:9px}.workflow-step.active{background:#f5f3ff;border-color:#d9d4ff}.workflow-step.active strong{color:#4f46e5}
+.metrics{gap:10px;margin-bottom:14px}.metric{min-height:94px;padding:15px 16px;border-radius:12px;background:#fff;box-shadow:var(--sd-shadow)}.metric span{font-size:9px;color:#7a8698}.metric strong{font-size:25px;margin-top:7px;color:#172033}
+.panel{padding:18px;border-radius:12px;margin-bottom:13px;box-shadow:var(--sd-shadow)}.panel h2{font-size:14px;margin-bottom:12px}.sub{font-size:11px}
+input,select,textarea{min-height:42px;border-radius:9px;border-color:#dce2ea;font-size:13px}input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+button{min-height:40px;border-radius:9px}.primary{background:#4f46e5;box-shadow:0 4px 12px rgba(79,70,229,.18)}.primary:hover{background:#4338ca}.secondary{background:#f8fafc;border-color:#e2e7ef;color:#46546a}
+.tablewrap,.lines{border-radius:10px;border-color:#e4e8ef;box-shadow:none}table{min-width:760px}th{background:#f8fafc;color:#7a8698;padding:10px 11px;font-size:9px}td{padding:10px 11px;font-size:12px}tbody tr:nth-child(even) td{background:#fcfdff}tbody tr:hover td{background:#f5f7ff!important}
+.pill{border:1px solid transparent;padding:4px 8px}.pill.open{background:#eef2ff;color:#4f46e5}.pill.warn{background:#fff7e6;color:#a16207}.pill.cancel{background:#fff1f2;color:#be123c}
+.tag{background:#f3f5f8;border-color:#e5e9f0;color:#68758a;padding:4px 8px}
+.totalbar{border-radius:9px;background:#f8fafc;border-color:#e6eaf0}.totalbar strong{font-size:18px;color:#172033}
+/* Modern forms: grouped, calmer, less “legacy ERP”. */
+.linehead{margin:17px 0 9px}.linehead strong{font-size:12px}.field label{font-size:9px;color:#66758a;letter-spacing:.065em}.grid{gap:12px}.actions{gap:7px}
+/* Modern command/search layer */
+.sd-command-box{border-radius:14px;box-shadow:var(--sd-shadow-lg)}.sd-command-item{border-radius:8px}.sd-command-item:hover,.sd-command-item.active{background:#f1f0ff;color:#4f46e5}
+/* Mobile app shell */
+@media(max-width:900px){
+  header{padding:10px 13px}.wrap{padding-top:11px}.notice{font-size:10px}
+  .metrics{gap:8px}.metric{min-height:84px;padding:12px}.metric strong{font-size:21px}
+  .panel{padding:14px;border-radius:11px}.panel h2{font-size:13px}
+  .mobile-bottom-nav{background:rgba(255,255,255,.94)!important;border:1px solid #e2e7ef!important;box-shadow:0 10px 35px rgba(15,23,42,.12)!important;backdrop-filter:blur(16px)}
+}
+@media(max-width:540px){.wrap{padding-left:8px;padding-right:8px}.metric{min-height:78px}.metric strong{font-size:19px}.panel{padding:12px}.sd-section-title h2{font-size:18px}}
+/* Dark mode remains supported, with the same hierarchy. */
+[data-theme=dark]{--sd-bg:#0b1220;--sd-surface:#111b2a;--sd-surface-2:#142235;--sd-text:#e8edf5;--sd-muted:#93a1b5;--sd-border:#263447;--sd-shadow:0 8px 26px rgba(0,0,0,.18)}
+[data-theme=dark] body{background:var(--sd-bg);color:var(--sd-text)}
+[data-theme=dark] .panel,[data-theme=dark] .metric,[data-theme=dark] .sd-quickbar .quick{background:#111b2a;border-color:#263447;color:#dfe7f2}
+[data-theme=dark] th{background:#152236;color:#91a0b5}[data-theme=dark] tbody tr:nth-child(even) td{background:#101a29}[data-theme=dark] tbody tr:hover td{background:#17263a!important}
+[data-theme=dark] input,[data-theme=dark] select,[data-theme=dark] textarea{background:#0f1928;border-color:#2a3a50;color:#e5ebf4}[data-theme=dark] .notice{background:#111b2a;border-color:#263447;color:#aab8ca}
