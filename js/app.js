@@ -237,7 +237,3 @@ window.SalesDeskStartApp=async function startApp(){
 }
 function removeLine(el){el.closest('tr').remove();calcOrder()}
 $('restoreFile').addEventListener('change',restore);
-  $('loginMsg').textContent='Opening Google sign-in…';
-  const {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
-  if(error)$('loginMsg').textContent=error.message||'Google sign-in failed.';
-});
