@@ -1,0 +1,4 @@
+const fs=require("fs"),path=require("path");const root=process.cwd();const files=[];
+function walk(d){for(const n of fs.readdirSync(d)){const p=path.join(d,n),s=fs.statSync(p);if(s.isDirectory()&&!["node_modules",".git","dist"].includes(n))walk(p);else if(s.isFile()&&(/\.html$|\.js$/.test(n)))files.push(p)}}walk(root);
+const sec=fs.readFileSync("js/security.js","utf8"),m=sec.match(/new Set\(\[([^\]]+)/s),allowed=new Set((m?.[1]||"").match(/"([^"]+)"/g)?.map(x=>x.slice(1,-1))||[]),used=new Set();
+for(const f of files)for(const x of fs.readFileSync(f,"utf8").matchAll(/data-act=["']([^"']+)["']/g))used.add(x[1]);const missing=[...used].filter(x=>!allowed.has(x));if(missing.length){console.error("Missing actions: "+missing.join(", "));process.exit(1)}console.log("check-actions: PASS");
