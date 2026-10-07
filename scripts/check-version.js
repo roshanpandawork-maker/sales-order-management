@@ -1,0 +1,1 @@
+const fs=require("fs");const a=JSON.parse(fs.readFileSync("version.json","utf8")).version,b=JSON.parse(fs.readFileSync("package.json","utf8")).version;if(a!==b){console.error("Version mismatch");process.exit(1)}console.log("version-check: PASS "+a);
