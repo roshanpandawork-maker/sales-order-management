@@ -58,7 +58,7 @@ css.textContent=`
 `;
 document.head.appendChild(css);
 
-const esc=v=>window.esc?window.esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const esc=window.esc;
 const money=v=>window.money?window.money(v):'₹'+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmt=v=>Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2});
 const ym=()=>P.month.split('-').map(Number);
