@@ -9,7 +9,7 @@ const state={parties:[],invoices:[],payments:[],followups:[],openings:[]};
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 const dmy=v=>{const p=String(v||"").split("-");return p.length===3?p[2]+"-"+p[1]+"-"+p[0]:""};
 const money=v=>"₹"+Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const esc=window.esc;
 
 async function allowed(){
   const {data:{user},error:authError}=await sb.auth.getUser();
