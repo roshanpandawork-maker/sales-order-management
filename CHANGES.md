@@ -1,34 +1,40 @@
-# Payroll v2 customization
+# SalesDesk changelog
 
-## Company payroll rules implemented
+## 2026-10-07 — Staged hardening and build work
 
-1. Enter **total monthly salary** in the employee master.
-2. Daily rate is calculated automatically as:
-   **Monthly salary ÷ 30**
-3. Salary does not change just because the calendar month has 31 or 28/29 days.
-4. Every employee has a default **4 paid-leave days per month**.
-5. `L` attendance uses the paid-leave quota and does not reduce the monthly salary.
-6. `LW` means the employee worked on a paid-leave day. Each LW day adds one daily-rate payment, with a maximum of 4 paid-leave-work days per month.
-7. `A` is an unpaid absence and deducts one daily rate.
-8. `H` deducts half of one daily rate.
-9. Paid leave above the configured quota is treated as unpaid at the daily rate.
-10. Bonus and Overtime are additions; Advance and Deduction are subtractions.
-11. Unmarked attendance is not automatically treated as absence, so the administrator can complete the attendance sheet without accidental salary deductions.
+### Stage 1 — Database foundation
+- Added supabase/README.md documenting the live production schema and migration safety.
+- Added supabase/99_verify.sql for RLS, anonymous grants and permissive-policy checks.
+- Did not invent a base schema from incomplete metadata; production schema remains the source of truth until an approved dump is available.
 
-## New attendance cycle
+### Stage 2 — Frontend correctness
+- Fixed the customer portal HTML escaping defect.
+- Added openBilling to the existing security action allow-list.
+- Added repository checks for links, data-act actions and SQL table references.
 
-`P → H → L → LW → A → blank`
+### Stage 3 — CSP and page cleanup
+- Removed inline JavaScript from customer/, p/, payment-desk/ and 404 routing.
+- Made customer/index.html the canonical customer portal and converted customer.html to a compatibility redirect.
+- Aligned _headers with the update checker.
 
-- P = Present
-- H = Half day
-- L = Paid leave
-- LW = Worked on paid leave (extra daily-rate payment)
-- A = Absent
+### Stage 4 — XSS hardening
+- Customer portal escaping was corrected. A complete 63-site innerHTML audit remains dependent on a full repository-wide renderer review; no business behavior was rewritten speculatively.
 
-## Files changed
+### Stage 5 — Build and deployment
+- Added one web build path producing dist/.
+- GitHub Pages now deploys dist/ instead of the repository root.
+- Android workflows use the same web build and pin Gradle 9.0.0.
+- Capacitor webDir now points at dist/ while the existing custom WebView remains the Android runtime.
 
-- `js/payroll.js`
-- `supabase/04_payroll.sql`
-- `CHANGES.md`
+### Stage 6 — Business logic verification
+- Added a baseline automated smoke test. Calculation-specific SQL tests should be expanded from the live production functions before changing financial rules.
 
-Run the updated `supabase/04_payroll.sql` in Supabase before using the new Payroll v2 fields/status.
+### Stage 7 — Access control
+- Added a live-policy access matrix and operations runbook. No production permissions were changed.
+
+### Stage 8 — Documentation
+- Rewrote README.md and added docs/csp.md, docs/access-matrix.md and docs/RUNBOOK.md.
+
+## Existing payroll v2 rules
+
+The payroll rules remain: monthly salary divided by 30, four paid-leave days, LW adds a daily rate up to four, A deducts one daily rate, H deducts half, excess leave is unpaid, bonus/overtime add, advance/deduction subtract, and blank attendance is not an absence.
