@@ -235,35 +235,8 @@ window.SalesDeskStartApp=async function startApp(){
     return false;
   }
 }
-async function doLogin(e){
-  e.preventDefault();
-  const msg=$('loginMsg');
-  msg.textContent='Signing in…';
-  if(Date.now()<(window.__lockUntil||0)){msg.textContent='Too many attempts. Wait 30 seconds.';return}
-  const email=$('loginEmail').value.trim().toLowerCase();
-  const password=$('loginPass').value;
-  if(!email||!password){msg.textContent='Enter your email and password.';return}
-  try{
-    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
-    if(error){
-      window.__fails=(window.__fails||0)+1;
-      if(window.__fails>=5){window.__lockUntil=Date.now()+30000;window.__fails=0}
-      console.error('SalesDesk sign-in failed:',error);
-      msg.textContent=error.message||'Invalid email or password.';
-      return;
-    }
-    window.__fails=0;
-    const ok=await startApp();
-    if(!ok) return;
-  }catch(err){
-    console.error('SalesDesk sign-in exception:',err);
-    msg.textContent='Sign-in failed. Please try again.';
-  }
-}
 function removeLine(el){el.closest('tr').remove();calcOrder()}
-$('loginForm').addEventListener('submit',doLogin);
 $('restoreFile').addEventListener('change',restore);
-$('googleBtn').addEventListener('click',async()=>{
   $('loginMsg').textContent='Opening Google sign-in…';
   const {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
   if(error)$('loginMsg').textContent=error.message||'Google sign-in failed.';
