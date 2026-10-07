@@ -1,0 +1,1 @@
+const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs");test("version files agree",()=>assert.equal(require("../version.json").version,require("../package.json").version));test("web build script exists",()=>assert.ok(fs.existsSync("scripts/build-web.js")));
