@@ -7,7 +7,7 @@ const esc=window.esc;
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const qty=n=>Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:3});
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
-let loaded=false, loading=false, priceBoardParty="", data={summary:[],ledger:[],prices:[],history:[],stock:[],moves:[],requests:[],approvals:[],notes:[]};
+let loaded=false, loading=false, priceBoardParty="", data={summary:[],ledger:[],prices:[],daily:[],history:[],quotes:[],stock:[],moves:[],requests:[],approvals:[],notes:[]};
 
 function opts(arr,valueKey="code",labelKey="name",blank="Select…"){
   return '<option value="">'+esc(blank)+'</option>'+arr.map(x=>'<option value="'+esc(x[valueKey])+'">'+esc(x[labelKey])+'</option>').join("");
@@ -53,6 +53,7 @@ async function loadAll(){
 function renderAll(){
   renderLedger();
   renderPrices();
+  renderQuotations();
   renderInventory();
   renderRequests();
   renderApprovals();
