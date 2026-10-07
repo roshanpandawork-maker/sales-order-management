@@ -36,14 +36,16 @@ async function loadAll(){
     sb().from("party_receivable_summary").select("*").order("outstanding_amount",{ascending:false}),
     sb().from("party_ledger").select("*").order("transaction_date",{ascending:true}),
     sb().from("party_product_prices").select("*").order("valid_from",{ascending:false}),
+    sb().from("daily_product_prices").select("*").order("valid_date",{ascending:false}).limit(500),
     sb().from("price_history").select("*").order("effective_from",{ascending:false}).limit(250),
+    sb().from("quotations").select("*,quotation_lines(*)").order("quotation_date",{ascending:false}).limit(100),
     sb().from("inventory_balances").select("*").order("product_name",{ascending:true}),
     sb().from("inventory_ledger").select("*").order("movement_date",{ascending:false}).limit(250),
     sb().from("party_requests").select("*").order("requested_at",{ascending:false}).limit(250),
     sb().from("approvals").select("*").order("created_at",{ascending:false}).limit(250),
     sb().from("notifications").select("*").order("created_at",{ascending:false}).limit(100)
   ]);
-  const names=["summary","ledger","prices","history","stock","moves","requests","approvals","notes"];
+  const names=["summary","ledger","prices","daily","history","quotes","stock","moves","requests","approvals","notes"];
   queries.forEach((r,i)=>{
     if(r.error) console.warn("Stage 3 "+names[i]+" load:",r.error);
     data[names[i]]=r.data||[];
@@ -93,39 +95,100 @@ async function showLedger(code){
 }
 function renderPrices(){
   const selected=priceBoardParty;
+  const todayDaily=data.daily.filter(x=>x.valid_date===today());
   const partyRows=(db.products||[]).map(p=>{
     const pp=selected?activePartyPrice(selected,p.code):null;
-    const rate=pp?.rate??p.rate??0;
-    return '<tr><td><b>'+esc(p.name)+'</b><div class="small muted">'+esc(p.code)+'</div></td><td>'+esc(p.unit||"")+'</td><td>'+money(rate)+'</td><td>'+esc(pp?.valid_from||"Default")+'</td><td>'+esc(pp?.valid_to||"Open")+'</td><td><button type="button" class="secondary btnsm" data-load-price="'+esc(p.code)+'">Use rate</button></td></tr>';
+    const dp=todayDaily.find(x=>x.product_code===p.code);
+    const rate=pp?.rate??dp?.rate??p.rate??0;
+    const source=pp?"Party price":dp?"Daily price":"Product default";
+    return '<tr><td><b>'+esc(p.name)+'</b><div class="small muted">'+esc(p.code)+'</div></td><td>'+esc(p.unit||"")+'</td><td><b>'+money(rate)+'</b></td><td>'+esc(source)+'</td><td>'+esc(pp?.valid_from||dp?.valid_date||"Default")+'</td><td><button type="button" class="secondary btnsm" data-load-price="'+esc(p.code)+'">Use rate</button></td></tr>';
   });
-  const historyRows=data.history.slice(0,100).map(x=>'<tr><td>'+esc(x.effective_from?.slice(0,10)||"")+'</td><td>'+esc(partyName(x.party_code))+'</td><td>'+esc(productName(x.product_code))+'</td><td>'+money(x.rate)+'</td><td>'+esc(x.source||"")+'</td><td>'+esc(x.note||"")+'</td></tr>');
-  setSection("priceboard","Price Management & Live Price Board","Party-specific rates, effective dates and immutable price history for sales decisions.",
-    '<div class="panel"><h3>Set party-specific price</h3><form id="stage3PriceForm"><div class="grid">'+
+  const dailyRows=todayDaily.map(x=>'<tr><td><b>'+esc(productName(x.product_code))+'</b><div class="small muted">'+esc(x.product_code)+'</div></td><td>'+esc(db.products.find(p=>p.code===x.product_code)?.unit||"")+'</td><td><b>'+money(x.rate)+'</b></td><td>'+esc(x.source||"MANUAL")+'</td><td>'+esc(x.note||"")+'</td><td><button type="button" class="secondary btnsm" data-edit-daily="'+esc(x.product_code)+'">Edit</button></td></tr>');
+  const historyRows=data.history.slice(0,100).map(x=>'<tr><td>'+esc(x.effective_from?.slice(0,10)||"")+'</td><td>'+esc(x.party_code?partyName(x.party_code):"ALL CUSTOMERS")+'</td><td>'+esc(productName(x.product_code))+'</td><td>'+money(x.rate)+'</td><td>'+esc(x.source||"")+'</td><td>'+esc(x.note||"")+'</td></tr>');
+  setSection("priceboard","Daily Prices & Live Price Board","Enter today's common selling price here. Customers see this price automatically; a party-specific price overrides it.",
+    '<div class="notice"><b>Where do I enter today's price?</b> Use the form below once per product. The rate is published to every customer portal for that date unless that customer has a party-specific rate.</div>'+
+    '<div class="panel"><h3>Enter / update today's daily price</h3><form id="stage3DailyPriceForm"><div class="grid">'+
+      '<div class="field"><label>Product *</label><select id="stage3DailyProduct" required>'+opts(db.products,"code","name","Select product")+'</select></div>'+
+      '<div class="field"><label>Daily rate incl. GST (₹) *</label><input id="stage3DailyRate" type="number" min="0" step=".01" required></div>'+
+      '<div class="field"><label>Price date *</label><input id="stage3DailyDate" type="date" value="'+today()+'" required></div>'+
+      '<div class="field"><label>Source</label><select id="stage3DailySource"><option>MANUAL</option><option>APPROVED</option><option>MARKET</option><option>IMPORT</option></select></div>'+
+      '<div class="field" style="grid-column:1/-1"><label>Note</label><input id="stage3DailyNote" placeholder="Optional market note / approval reference"></div>'+
+    '</div><div class="actions"><button class="primary">Publish daily price</button></div></form></div>'+
+    '<div class="metrics">'+metric("Products",db.products.length,"Selling masters")+metric("Today's prices",todayDaily.length,"Published today")+metric("Party overrides",data.prices.length,"Customer-specific rates")+metric("History",data.history.length,"Rate changes recorded")+'</div>'+
+    '<h3>Today's published prices</h3>'+table(["Product","Unit","Today's rate","Source","Note",""],dailyRows)+
+    '<div class="panel"><h3>Party-specific price override</h3><form id="stage3PriceForm"><div class="grid">'+
       '<div class="field"><label>Party *</label><select id="stage3PriceParty" required>'+opts(db.parties,"code","name","Select party")+'</select></div>'+
       '<div class="field"><label>Product *</label><select id="stage3PriceProduct" required>'+opts(db.products,"code","name","Select product")+'</select></div>'+
       '<div class="field"><label>Rate incl. GST (₹) *</label><input id="stage3PriceRate" type="number" min="0" step=".01" required></div>'+
       '<div class="field"><label>Valid from *</label><input id="stage3PriceDate" type="date" value="'+today()+'" required></div>'+
       '<div class="field"><label>Source</label><select id="stage3PriceSource"><option>MANUAL</option><option>APPROVED</option><option>CUSTOMER_REQUEST</option><option>IMPORT</option></select></div>'+
       '<div class="field"><label>Note</label><input id="stage3PriceNote" placeholder="Reason / customer agreement"></div>'+
-    '</div><div class="actions"><button class="primary">Save price & record history</button></div></form></div>'+
-    '<div class="metrics">'+metric("Products",db.products.length,"Selling masters")+metric("Party prices",data.prices.length,"Effective / historical rules")+metric("History",data.history.length,"Rate changes recorded")+metric("Selected party",selected?partyName(selected):"None","Board filter")+'</div>'+
-    '<div class="filters"><select id="stage3BoardParty">'+opts(db.parties,"code","name","All parties / default rates")+'</select></div>'+
-    '<h3>Current price board</h3>'+table(["Product","Unit","Current rate","Valid from","Valid to",""],partyRows)+
+    '</div><div class="actions"><button class="primary">Save party price override</button></div></form></div>'+
+    '<div class="filters"><select id="stage3BoardParty">'+opts(db.parties,"code","name","All customers / default rates")+'</select></div>'+
+    '<h3>Current customer-facing price board</h3>'+table(["Product","Unit","Effective rate","Source","Effective date",""],partyRows)+
     '<h3>Recent price history</h3>'+table(["Effective","Party","Product","Rate","Source","Note"],historyRows)
   );
   const board=$("stage3BoardParty"); if(board){board.value=selected;board.onchange=()=>{priceBoardParty=board.value;renderPrices()}}
+  const dp=$("stage3DailyProduct"),dr=$("stage3DailyRate"),dd=$("stage3DailyDate");
+  const fillDaily=()=>{const x=data.daily.find(v=>v.product_code===dp.value&&v.valid_date===dd.value);dr.value=x?.rate??""};
+  if(dp)dp.onchange=fillDaily;if(dd)dd.onchange=fillDaily;
+  const dailyForm=$("stage3DailyPriceForm");
+  if(dailyForm)dailyForm.onsubmit=async e=>{
+    e.preventDefault();
+    const {error}=await sb().rpc("set_daily_product_price",{p_product_code:dp.value,p_rate:Number(dr.value),p_valid_date:dd.value,p_source:$("stage3DailySource").value,p_note:$("stage3DailyNote").value.trim()||null});
+    if(error)return alert(error.message);
+    alert("Daily price published. Customers will see it on their portal.");
+    await loadAll();
+  };
   const party=$("stage3PriceParty"),prod=$("stage3PriceProduct"),rate=$("stage3PriceRate");
-  const fill=()=>{const pp=activePartyPrice(party.value,prod.value);if(pp)rate.value=pp.rate;else{const p=db.products.find(x=>x.code===prod.value);rate.value=p?.rate??""}};
+  const fill=()=>{const pp=activePartyPrice(party.value,prod.value);if(pp)rate.value=pp.rate;else{const dp=todayDaily.find(x=>x.product_code===prod.value);const p=db.products.find(x=>x.code===prod.value);rate.value=dp?.rate??p?.rate??""}};
   if(party)party.onchange=fill;if(prod)prod.onchange=fill;
   const form=$("stage3PriceForm");
   if(form)form.onsubmit=async e=>{
     e.preventDefault();
-    const {error}=await sb().rpc("set_party_product_price",{
-      p_party_code:party.value,p_product_code:prod.value,p_rate:Number(rate.value),
-      p_valid_from:$("stage3PriceDate").value,p_source:$("stage3PriceSource").value,p_note:$("stage3PriceNote").value.trim()||null
-    });
+    const {error}=await sb().rpc("set_party_product_price",{p_party_code:party.value,p_product_code:prod.value,p_rate:Number(rate.value),p_valid_from:$("stage3PriceDate").value,p_source:$("stage3PriceSource").value,p_note:$("stage3PriceNote").value.trim()||null});
     if(error)return alert(error.message);
-    alert("Party price saved and added to price history.");
+    alert("Party price override saved.");
+    await loadAll();
+  };
+}
+function renderQuotations(){
+  const rows=data.quotes.slice(0,100).map(q=>{
+    const total=(q.quotation_lines||[]).reduce((a,l)=>a+Number(l.quantity||0)*Number(l.rate||0)*(1+Number(l.gst_rate||0)/100),0);
+    return '<tr><td><b>'+esc(q.quotation_no)+'</b></td><td>'+esc(q.quotation_date)+'</td><td>'+esc(partyName(q.party_code))+'</td><td>'+money(total)+'</td><td><span class="pill">'+esc(q.status)+'</span></td><td>'+esc(q.valid_until||"—")+'</td></tr>';
+  });
+  setSection("quotations","Quotation Center","Create quotations for customers. Sent quotations appear automatically in the customer portal.",
+    '<div class="notice"><b>Workflow:</b> choose customer → add products → enter rate → send quotation. The customer can then see it in the Quotations tab of their portal.</div>'+
+    '<div class="panel"><h3>Create quotation</h3><form id="stage3QuotationForm"><div class="grid">'+
+      '<div class="field"><label>Party *</label><select id="stage3QuoteParty" required>'+opts(db.parties,"code","name","Select party")+'</select></div>'+
+      '<div class="field"><label>Valid until</label><input id="stage3QuoteValid" type="date"></div>'+
+      '<div class="field"><label>Status</label><select id="stage3QuoteStatus"><option value="SENT">SENT — show customer</option><option value="DRAFT">DRAFT — internal</option></select></div>'+
+      '<div class="field"><label>Remarks</label><input id="stage3QuoteRemarks" placeholder="Delivery terms / commercial note"></div>'+
+    '</div><div class="linehead"><strong>Quotation items</strong><button type="button" class="secondary" data-add-quote-line>+ Add product</button></div>'+
+    '<div class="lines"><table><thead><tr><th>Product</th><th>Unit</th><th>Quantity</th><th>Rate incl. GST (₹)</th><th>GST %</th><th></th></tr></thead><tbody id="stage3QuoteLines"></tbody></table></div>'+
+    '<div class="actions"><button class="primary">Create quotation</button></div></form></div>'+
+    '<div class="metrics">'+metric("Quotations",data.quotes.length,"Latest records")+metric("Sent",data.quotes.filter(x=>x.status==="SENT").length,"Visible to customers")+metric("Drafts",data.quotes.filter(x=>x.status==="DRAFT").length,"Internal")+metric("Accepted",data.quotes.filter(x=>x.status==="ACCEPTED").length,"Customer accepted")+'</div>'+
+    '<h3>Quotation register</h3>'+table(["Quotation","Date","Party","Value","Status","Valid until"],rows)
+  );
+  const form=$("stage3QuotationForm"),body=$("stage3QuoteLines");
+  const addLine=(productCode="",quantity="",rate="")=>{
+    if(!body)return;
+    const tr=document.createElement("tr");
+    tr.innerHTML='<td><select class="sq-product">'+opts(db.products,"code","name","Select product")+'</select></td><td class="sq-unit">—</td><td><input class="sq-qty" type="number" min=".001" step=".001" value="'+esc(quantity)+'" required></td><td><input class="sq-rate" type="number" min="0" step=".01" value="'+esc(rate)+'" required></td><td class="sq-gst">0</td><td><button type="button" class="danger btnsm" data-remove-quote-line>Remove</button></td>';
+    body.appendChild(tr);
+    const sel=tr.querySelector(".sq-product");sel.value=productCode;
+    const fill=()=>{const p=db.products.find(x=>x.code===sel.value);tr.querySelector(".sq-unit").textContent=p?.unit||"—";tr.querySelector(".sq-gst").textContent=p?.gst_rate??0;if(!tr.querySelector(".sq-rate").value){const party=$("stage3QuoteParty")?.value;const pp=data.prices.find(x=>x.party_code===party&&x.product_code===sel.value&&(!x.valid_to||x.valid_to>=today()));const dp=data.daily.find(x=>x.product_code===sel.value&&x.valid_date===today());tr.querySelector(".sq-rate").value=pp?.rate??dp?.rate??p?.rate??""}};
+    sel.onchange=fill;fill();
+  };
+  addLine();
+  document.querySelector("[data-add-quote-line]")?.addEventListener("click",()=>addLine());
+  if(form)form.onsubmit=async e=>{
+    e.preventDefault();
+    const lines=[...body.querySelectorAll("tr")].map(tr=>{const code=tr.querySelector(".sq-product").value,p=db.products.find(x=>x.code===code);return {product_code:code,quantity:Number(tr.querySelector(".sq-qty").value),rate:Number(tr.querySelector(".sq-rate").value),gst_rate:Number(p?.gst_rate||0)}}).filter(x=>x.product_code&&x.quantity>0&&x.rate>=0);
+    if(!lines.length)return alert("Add at least one valid quotation item.");
+    const {error}=await sb().rpc("create_quotation",{p_party_code:$("stage3QuoteParty").value,p_valid_until:$("stage3QuoteValid").value||null,p_remarks:$("stage3QuoteRemarks").value.trim()||null,p_status:$("stage3QuoteStatus").value,p_lines:lines});
+    if(error)return alert(error.message);
+    alert("Quotation created. It is now available in the customer's portal.");
     await loadAll();
   };
 }
