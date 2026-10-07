@@ -19,3 +19,15 @@
 [submodule "reference/playwright"]
 	path = reference/playwright
 	url = https://github.com/microsoft/playwright.git
+[submodule "reference/shadcn-admin"]
+	path = reference/shadcn-admin
+	url = https://github.com/satnaing/shadcn-admin.git
+[submodule "reference/shadcn-admin-kit"]
+	path = reference/shadcn-admin-kit
+	url = https://github.com/marmelab/shadcn-admin-kit.git
+[submodule "reference/tremor"]
+	path = reference/tremor
+	url = https://github.com/tremorlabs/tremor.git
+[submodule "reference/tailadmin"]
+	path = reference/tailadmin
+	url = https://github.com/TailAdmin/free-react-tailwind-admin-dashboard.git
