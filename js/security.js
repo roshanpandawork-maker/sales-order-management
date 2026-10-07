@@ -2,7 +2,7 @@
 (function(){
   "use strict";
   // Only these functions can be triggered from data-act attributes (no inline JS needed).
-  const ALLOWED=new Set(["addOrderLine", "backup", "clearSaleLines", "closeModal", "deleteParty", "deleteProduct", "editOrder", "editParty", "editProduct", "editSale", "exportCSV", "logout", "partyLiveLink", "partyLiveWhatsApp","openBilling", "removeLine", "removeSale", "renderBalances", "resetOrder", "setPartyCode", "setProductCode", "toggleCancel"]);
+  const ALLOWED=new Set(["addOrderLine", "backup", "clearSaleLines", "closeModal", "deleteParty", "deleteProduct", "editOrder", "editParty", "editProduct", "editSale", "exportCSV", "logout", "partyLiveLink", "partyLiveWhatsApp", "removeLine", "removeSale", "renderBalances", "resetOrder", "setPartyCode", "setProductCode", "toggleCancel"]);
   document.addEventListener('click',function(ev){
     const el=ev.target.closest('[data-act]');
     if(!el)return;
