@@ -3,7 +3,7 @@ const cfg=window.SALESDESK_CONFIG||{};
 const base=cfg.SUPABASE_URL;
 const key=cfg.SUPABASE_PUBLISHABLE_KEY;
 const slug=new URLSearchParams(location.search).get("c")||"";
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":">",'"':"&quot;","'":"&#39;"}[c]));
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:3});
 const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 let portal=null;
