@@ -28,5 +28,5 @@
   document.getElementById("loginForm").addEventListener("submit",login);
   document.getElementById("googleBtn").addEventListener("click",google);
   window.logout=logout;
-  boot();
+  document.addEventListener('DOMContentLoaded',boot);
 })();
