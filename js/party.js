@@ -6,7 +6,7 @@ const SUPABASE_KEY = window.SALESDESK_CONFIG?.SUPABASE_PUBLISHABLE_KEY;
 const qs = new URLSearchParams(location.search);
 const token = qs.get("token") || new URLSearchParams((location.hash || "").replace(/^#/, "")).get("token");
 
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+const esc = window.esc;
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
 }[c]));
 
