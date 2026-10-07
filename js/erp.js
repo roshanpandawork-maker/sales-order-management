@@ -3,11 +3,11 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const E={pay:[],led:[],on:false,loading:false,err:'',gst:5};
-const SECS=['dashboard','orders','sales','parties','products','balances','inventory','invoices','payments','reports'];
+const SECS=['dashboard','orders','sales','parties','products','balances','inventory','invoices','payments','reports','quotations','priceboard','financeCenter','requests','approvals','notifications','auditCenter'];
 const pn=c=>db.products.find(p=>p.code===c)?.name||c;
 const tbl=(h,r)=>`<div class="tablewrap"><table><thead><tr>${h.map(x=>'<th>'+x+'</th>').join('')}</tr></thead><tbody>${r.join('')||'<tr><td class="empty" colspan="'+h.length+'">No records</td></tr>'}</tbody></table></div>`;
 const row=c=>'<tr>'+c.map(x=>'<td>'+x+'</td>').join('')+'</tr>';
-window.showTab=function(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));SECS.forEach(x=>$(x).classList.toggle('hidden',x!==t));if(t==='orders'&&!$('orderLines').children.length)addOrderLine()};
+window.showTab=function(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));SECS.forEach(x=>$(x)?.classList.toggle('hidden',x!==t));if(t==='orders'&&!$('orderLines').children.length)addOrderLine()};
 async function loadERP(){
   if(E.loading)return;E.loading=true;
   const a=await supabaseClient.from('payments').select('*'),b=await supabaseClient.from('stock_ledger').select('*');
