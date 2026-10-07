@@ -40,12 +40,9 @@ function renderQuotations(){
  '<div class="sd-quickbar">'+nav("orders","Open Sales Orders")+nav("products","Manage Products")+nav("parties","Manage Parties")+'</div>'+table(["Quotation","Date","Party","Value","Status","Action"],rows));
 }
 function renderPriceBoard(){
- const rows=(db.products||[]).map(p=>{
-  const partyPrice=state.prices.find(x=>x.product_code===p.code);
-  return '<tr><td><b>'+esc2(p.name)+'</b></td><td>'+esc2(p.code)+'</td><td>'+esc2(p.unit||"")+'</td><td>'+money(partyPrice?.rate??p.rate)+'</td><td>'+esc2(partyPrice?.valid_from||"Default")+'</td><td><button class="secondary btnsm" data-price="'+esc2(p.code)+'">Price history</button></td></tr>'
- });
- section("priceboard","Live Price Board","Current selling rates with a path toward party-specific and historical pricing.",
- '<div class="metrics">'+k("Products",(db.products||[]).length,"Active master")+k("Price rules",state.prices.length,"Party-specific")+k("History",state.ph.length,"Recorded rates")+k("Today",new Date().toLocaleDateString("en-IN"),"Current price date")+'</div>'+table(["Product","Code","Unit","Current rate","Effective",""],rows));
+ if(window.SD_STAGE3?.reload){ window.SD_STAGE3.reload(); return; }
+ section("priceboard","Daily Prices & Live Price Board","Loading the current daily price board…",
+  '<div class="notice">Daily price management is loading. If this remains visible, refresh the page once.</div>');
 }
 function renderFinance(){
  const receivable=state.inv.reduce((a,x)=>a+Number(x.grand_total||0),0)-state.pay.reduce((a,x)=>a+Number(x.amount||0),0);
