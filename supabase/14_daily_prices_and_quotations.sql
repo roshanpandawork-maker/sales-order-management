@@ -91,7 +91,7 @@ begin
     from public.products p
     left join lateral(select x.rate from public.party_product_prices x where x.party_code=v_party_code and x.product_code=p.code and x.valid_from<=v_today and (x.valid_to is null or x.valid_to>=v_today) order by x.valid_from desc,x.created_at desc limit 1) pp on true
     left join lateral(select x.rate from public.daily_product_prices x where x.product_code=p.code and x.valid_date=v_today limit 1) dp on true),'[]'::jsonb),
-  'orders',coalesce((select jsonb_agg(jsonb_build_object('so',o.no,'date',o.date,'due',o.due,'status',o.status,'items',o.lines) order by o.date desc,o.no desc) from public.orders o where o.partyCode=v_party_code and coalesce(o.status,'')<>'Cancelled'),'[]'::jsonb),
+  'orders',coalesce((select jsonb_agg(jsonb_build_object('so',o.no,'date',o.date,'due',o.due,'status',o.status,'items',o.lines) order by o.date desc,o.no desc) from public.orders o where o."partyCode"=v_party_code and coalesce(o.status,'')<>'Cancelled'),'[]'::jsonb),
   'quotations',coalesce((select jsonb_agg(jsonb_build_object('id',q.id,'quotation_no',q.quotation_no,'date',q.quotation_date,'valid_until',q.valid_until,'status',q.status,'remarks',q.remarks,'lines',(select coalesce(jsonb_agg(jsonb_build_object('product_code',ql.product_code,'quantity',ql.quantity,'rate',ql.rate,'gst_rate',ql.gst_rate,'unit',ql.unit) order by ql.id),'[]'::jsonb) from public.quotation_lines ql where ql.quotation_id=q.id)) order by q.quotation_date desc) from public.quotations q where q.party_code=v_party_code),'[]'::jsonb)
  );
 end $$;
