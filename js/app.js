@@ -1,6 +1,5 @@
-const SD_CFG=window.SALESDESK_CONFIG;
-const supabaseClient=window.supabase.createClient(SD_CFG.SUPABASE_URL,SD_CFG.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-window.supabaseClient=supabaseClient;
+const supabaseClient=window.supabaseClient;
+if(!supabaseClient) throw new Error('SalesDesk auth module was not loaded.');
 const $=id=>document.getElementById(id),today=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 let db={parties:[],products:[],orders:[],sales:[],payments:[],invoices:[]};
 const TABLES=['parties','products','orders','sales','payments','invoices'],PK={parties:'code',products:'code',orders:'no',sales:'id',payments:'id',invoices:'id'};
@@ -183,7 +182,7 @@ function editProduct(code){
   });
 }
 let started=false;
-async function startApp(){
+window.SalesDeskStartApp=async function startApp(){
   if(started)return;
   started=true;
   try{
@@ -261,14 +260,6 @@ async function doLogin(e){
     msg.textContent='Sign-in failed. Please try again.';
   }
 }
-async function logout(){
-  try{await supabaseClient.auth.signOut()}finally{location.reload()}
-}
-(async()=>{
-  const {data,error}=await supabaseClient.auth.getSession();
-  if(error){console.error('SalesDesk session check failed:',error);return}
-  if(data?.session)await startApp();
-})();
 function removeLine(el){el.closest('tr').remove();calcOrder()}
 $('loginForm').addEventListener('submit',doLogin);
 $('restoreFile').addEventListener('change',restore);
