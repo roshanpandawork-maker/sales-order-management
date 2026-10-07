@@ -31,7 +31,7 @@ async function doSync(){
 }
 function sync(){chain=chain.then(doSync).catch(e=>{setTag('Save failed');alert('Error: '+e.message)})}
 const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}),fmt=n=>Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:3});
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=window.esc;
 function save(){render();sync()}
 function id(prefix,arr,field){return prefix+String(Math.max(0,...arr.map(x=>parseInt(String(x[field]||'').replace(/\D/g,''))||0))+1).padStart(4,'0')}
 function setPartyCode(){$('partyCode').value=id('PTY',db.parties,'code')}
