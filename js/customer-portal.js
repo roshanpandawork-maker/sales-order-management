@@ -15,8 +15,7 @@ function tabSetup(){document.querySelectorAll(".tabs button").forEach(b=>b.oncli
 function render(){
  const p=portal;document.getElementById("party").textContent=p.party_name||"Customer";
  const orders=p.orders||[],prices=p.prices||[],quotes=p.quotations||[];
- let ordered=0,balance=0;
- orders.forEach(o=>(o.items||[]).forEach(l=>{const q=Number(l.qty||0);ordered+=q;balance+=q}));
+ let ordered=0; orders.forEach(o=>(o.items||[]).forEach(l=>{ordered+=Number(l.qty||0)})); const balances=p.balances||[]; const balance=balances.reduce((a,x)=>a+Number(x.balance||0),0);
  document.getElementById("orders").textContent=orders.filter(o=>String(o.status||"").toLowerCase()!=="closed").length;
  document.getElementById("ordered").textContent=fmt(ordered);
  document.getElementById("balance").textContent=fmt(balance);
