@@ -7,7 +7,7 @@ const querySlug=qs.get('c')||'';
 const pathSlug=pathParts[pathParts.length-1] && pathParts[pathParts.length-1]!=='p' ? decodeURIComponent(pathParts[pathParts.length-1]) : '';
 const slug=querySlug||pathSlug;
 const token=qs.get('token')||new URLSearchParams((location.hash||'').replace(/^#/,'')).get('token');
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=window.esc;
 const fmt=n=>Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:3});
 async function load(){
  const status=document.getElementById('status'),err=document.getElementById('error');
