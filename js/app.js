@@ -184,41 +184,96 @@ function editProduct(code){
 }
 let started=false;
 async function startApp(){
-  if(started)return;started=true;
-  const roleCheck=await supabaseClient.rpc('my_role');
-  if(roleCheck.error){
-    console.error('SalesDesk role check failed:',roleCheck.error);
-    $('loginMsg').textContent='Could not verify your SalesDesk access. Please refresh and try again.';
+  if(started)return;
+  started=true;
+  try{
+    const sessionResult=await supabaseClient.auth.getSession();
+    if(sessionResult.error||!sessionResult.data?.session){
+      started=false;
+      $('loginBox').classList.remove('hidden');
+      return false;
+    }
+    const userResult=await supabaseClient.auth.getUser();
+    if(userResult.error||!userResult.data?.user){
+      await supabaseClient.auth.signOut();
+      started=false;
+      $('loginBox').classList.remove('hidden');
+      $('loginMsg').textContent='Your login session expired. Please sign in again.';
+      return false;
+    }
+    const roleCheck=await supabaseClient.rpc('my_role');
+    if(roleCheck.error){
+      console.error('SalesDesk role check failed:',roleCheck.error);
+      await supabaseClient.auth.signOut();
+      started=false;
+      $('loginBox').classList.remove('hidden');
+      $('loginMsg').textContent='Login succeeded, but SalesDesk access could not be verified. Please sign in again.';
+      return false;
+    }
+    if(!roleCheck.data){
+      await supabaseClient.auth.signOut();
+      started=false;
+      $('loginBox').classList.remove('hidden');
+      $('loginMsg').textContent='Your account is not authorised for SalesDesk. Contact the administrator.';
+      return false;
+    }
+    $('loginBox').classList.add('hidden');
+    SD_SECURITY.armIdleLogout(()=>logout());
+    const ok=await load();
+    if(!ok){started=false;$('loginBox').classList.remove('hidden');return false}
+    $('soDate').value=today;$('saleDate').value=today;
+    if(!db.products.length)db.products.push({code:'PRD0001',name:'Refined Rice Bran Oil',unit:'QTL',rate:0});
+    setPartyCode();setProductCode();setSO();
+    render();sync();
+    if(!$('orderLines').children.length)addOrderLine();
+    return true;
+  }catch(err){
+    console.error('SalesDesk startup error:',err);
+    await supabaseClient.auth.signOut().catch(()=>{});
     started=false;
-    return;
+    $('loginBox').classList.remove('hidden');
+    $('loginMsg').textContent='SalesDesk could not start. Please sign in again.';
+    return false;
   }
-  if(!roleCheck.data){
-    $('loginMsg').textContent='Your account is not authorised for SalesDesk. Contact the administrator.';
-    await supabaseClient.auth.signOut();
-    return;
-  }
-  $('loginBox').classList.add('hidden');SD_SECURITY.armIdleLogout(()=>logout());
-  const ok=await load();
-  $('soDate').value=today;$('saleDate').value=today;
-  if(ok&&!db.products.length)db.products.push({code:'PRD0001',name:'Refined Rice Bran Oil',unit:'QTL',rate:0});
-  setPartyCode();setProductCode();setSO();
-  render();if(ok)sync();
-  addOrderLine();
 }
 async function doLogin(e){
-  e.preventDefault();$('loginMsg').textContent='';
-  if(Date.now()<(window.__lockUntil||0))return $('loginMsg').textContent='Too many attempts. Wait 30 seconds.';
-  const {error}=await supabaseClient.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPass').value});
-  if(error){window.__fails=(window.__fails||0)+1;if(window.__fails>=5){window.__lockUntil=Date.now()+30000;window.__fails=0}$('loginMsg').textContent='Invalid email or password.';return}
-  window.__fails=0;
-  startApp();
+  e.preventDefault();
+  const msg=$('loginMsg');
+  msg.textContent='Signing in…';
+  if(Date.now()<(window.__lockUntil||0)){msg.textContent='Too many attempts. Wait 30 seconds.';return}
+  const email=$('loginEmail').value.trim().toLowerCase();
+  const password=$('loginPass').value;
+  if(!email||!password){msg.textContent='Enter your email and password.';return}
+  try{
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+    if(error){
+      window.__fails=(window.__fails||0)+1;
+      if(window.__fails>=5){window.__lockUntil=Date.now()+30000;window.__fails=0}
+      console.error('SalesDesk sign-in failed:',error);
+      msg.textContent=error.message||'Invalid email or password.';
+      return;
+    }
+    window.__fails=0;
+    const ok=await startApp();
+    if(!ok) return;
+  }catch(err){
+    console.error('SalesDesk sign-in exception:',err);
+    msg.textContent='Sign-in failed. Please try again.';
+  }
 }
-async function logout(){await supabaseClient.auth.signOut();location.reload()}
+async function logout(){
+  try{await supabaseClient.auth.signOut()}finally{location.reload()}
+}
 (async()=>{
-  const {data}=await supabaseClient.auth.getSession();
-  if(data.session)startApp();
+  const {data,error}=await supabaseClient.auth.getSession();
+  if(error){console.error('SalesDesk session check failed:',error);return}
+  if(data?.session)await startApp();
 })();
 function removeLine(el){el.closest('tr').remove();calcOrder()}
 $('loginForm').addEventListener('submit',doLogin);
 $('restoreFile').addEventListener('change',restore);
-$('googleBtn').addEventListener('click',()=>supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}}));
+$('googleBtn').addEventListener('click',async()=>{
+  $('loginMsg').textContent='Opening Google sign-in…';
+  const {error}=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
+  if(error)$('loginMsg').textContent=error.message||'Google sign-in failed.';
+});
