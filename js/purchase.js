@@ -8,7 +8,7 @@
   const SUP = "purchase_suppliers";
   const MSG = "purchase_messages";
 
-  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({
+const esc=window.esc;
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
 
