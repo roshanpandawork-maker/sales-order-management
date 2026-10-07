@@ -15,7 +15,7 @@ h1{margin:6px 0 4px;font-size:28px}h2{margin:0 0 4px;font-size:18px}.updated{fon
 <div class="wrap">
  <div class="card">
   <div class="head"><div><div class="brand">SalesDesk</div><h1 id="partyName">Loading party…</h1><div class="muted">Live Sales Order Balance</div></div><div class="status" id="status">Connecting…</div></div>
-  <div class="updated" id="updated" style="margin-top:12px">Waiting for live data</div>
+  <div class="updated" id="updated" style="margin-top:12px">Waiting for live data</div><div id="liveClock" style="margin-top:10px;font-size:24px;font-weight:800;letter-spacing:.04em;font-variant-numeric:tabular-nums">--:--:--</div>
  </div>
  <div class="metrics">
   <div class="metric"><span>Open products</span><strong id="productCount">0</strong></div>
@@ -53,5 +53,5 @@ async function load(){
   document.getElementById('rows').innerHTML=data.length?data.map(x=>'<tr><td><b>'+esc(x.product_name||x.product_code)+'</b></td><td>'+esc(x.unit)+'</td><td class="rate">₹'+fmt(x.rate)+'</td><td>'+fmt(x.ordered)+'</td><td>'+fmt(x.dispatched)+'</td><td class="balance">'+fmt(x.balance)+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">No open quantity is currently available.</td></tr>';
  }catch(e){status.textContent='Connection error';err.style.display='block';err.textContent=e.message||'Unable to load live balance.'}
 }
-load();setInterval(load,15000);
+function updateClock(){var e=document.getElementById("liveClock");if(e)e.textContent=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true})}updateClock();setInterval(updateClock,1000);load();setInterval(load,15000);
 </script></body></html>
