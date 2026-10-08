@@ -126,27 +126,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
     $('saleDate').value=today();calcSale();
   };
   const saleSOEl=$('saleSO');
-  if(saleSOEl){
-    let dispatchPartyTimer;
-    const refreshDispatchParty=()=>{
-      clearTimeout(dispatchPartyTimer);
-      dispatchPartyTimer=setTimeout(()=>{
-        const party=getSaleParty();
-        if(party) window.loadSaleLines();
-        else {
-          $('saleParty').value='';
-          if($('saleSOSelect')) $('saleSOSelect').innerHTML='';
-          $('saleLines').innerHTML='<tr><td colspan="8" class="empty">Select a valid party to load open Sales Orders.</td></tr>';
-          $('saleHint').textContent='Choose a party';
-          if($('saleSOSelectHint')) $('saleSOSelectHint').textContent='Select one or more open SOs.';
-          calcSale();
-        }
-      },80);
-    };
-    saleSOEl.addEventListener('input',refreshDispatchParty);
-    saleSOEl.addEventListener('change',refreshDispatchParty);
-    saleSOEl.addEventListener('blur',refreshDispatchParty);
-  }
+  if(saleSOEl){saleSOEl.onchange=()=>window.loadSaleLines();saleSOEl.onblur=()=>{if(getSaleParty())window.loadSaleLines()}}
   $('saleSOSelect')?.addEventListener('change',renderDispatchLines);
   $('saleSelectAllSO')?.addEventListener('click',()=>{const e=$('saleSOSelect');if(e)[...e.options].forEach(o=>o.selected=true);renderDispatchLines()});
   $('saleClearSO')?.addEventListener('click',()=>{const e=$('saleSOSelect');if(e)[...e.options].forEach(o=>o.selected=false);renderDispatchLines()});
@@ -171,48 +151,12 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
         return alert('Not enough selected SO balance for '+line.productCode+'. Short: '+fmt(remaining)+' '+line.qtyType+'. Selected SOs have '+fmt(available)+' '+line.qtyType+' available. Select another SO above and try again.');
       }
     }
-    // IMPORTANT: split the dispatch first, then send the exact allocation rows
-    // directly to Supabase as one INSERT. Do not wait for the generic full-db sync.
-    const dispatchNo='DS'+Date.now()+'-'+Math.random().toString(36).slice(2,8).toUpperCase();
-    const rowsToInsert=allocations.map((a,i)=>({
-      id:dispatchNo+'-'+i,
-      date:$('saleDate').value,
-      so:a.source.so,
-      party:party.name,
-      partyCode:party.code,
-      invoice:$('saleInvoice').value.trim(),
-      productCode:a.l.productCode,
-      qty:Number(a.qty),
-      qty_type:a.l.qtyType,
-      rate:Number(a.l.rate||0),
-      remarks:$('saleRemarks').value,
-      price_includes_gst:true
-    }));
-    const saveBtn=$('salesForm').querySelector('button.primary');
-    if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Saving dispatch…'}
-    try{
-      const remote=await supabaseClient.from('sales').insert(rowsToInsert);
-      if(remote.error){
-        throw new Error(remote.error.message||'Supabase rejected the dispatch.');
-      }
-      rowsToInsert.forEach(row=>db.sales.push(row));
-      render();
-      if(typeof prev!=='undefined'){
-        prev.sales=prev.sales||{};
-        rowsToInsert.forEach(row=>{prev.sales[row.id]=JSON.stringify(row)});
-      }
-      e.target.reset();
-      $('saleDate').value=today();
-      window.clearSaleLines();
-      alert('Dispatch saved to Supabase. '+rowsToInsert.length+' allocation row(s) created under '+dispatchNo+'.');
-    }catch(err){
-      console.error('Dispatch Supabase insert failed:',err);
-      alert('Dispatch was NOT saved to Supabase.\n\nExact error: '+(err?.message||err)+'\n\nNo local dispatch was added. Please correct the issue and try again.');
-    }finally{
-      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save dispatch'}
-    }
+    const b='DS'+Date.now();
+    allocations.forEach((a,i)=>db.sales.push({id:b+'-'+i,date:$('saleDate').value,so:a.source.so,party:party.name,partyCode:party.code,invoice:$('saleInvoice').value.trim(),productCode:a.l.productCode,qty:a.qty,qty_type:a.l.qtyType,rate:a.l.rate,remarks:$('saleRemarks').value}));
+    save();e.target.reset();$('saleDate').value=today();window.clearSaleLines();
+    alert('Dispatch saved. '+allocations.length+' SO allocation(s) created under one dispatch.');
   };
-  const oldRender=window.render;window.render=function(){normalize();oldRender();const oh=document.querySelector('#orders .lines thead tr'),sh=document.querySelector('#sales .lines thead tr');if(oh)oh.children[1].textContent='QTY TYPE';if(sh)sh.children[1].textContent='QTY TYPE';[...$('orderRows').rows].forEach((r,i)=>{const o=[...db.orders].reverse()[i];if(o){r.cells[4].textContent=o.lines.map(l=>qt(l.qty,lt(l))).join(' + ');r.cells[5].textContent=o.lines.map(l=>qt(orderLineSold(o.no,l.productCode,lt(l)),lt(l))).join(' + ');r.cells[6].textContent=o.lines.map(l=>qt(Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),lt(l))).join(' + ')}});[...$('salesRows').rows].forEach((r,i)=>{const s=[...db.sales].reverse()[i];if(s)r.cells[5].textContent=qt(s.qty,st(s))});const active=db.orders.filter(o=>o.status!=='Cancelled');const soPartyList=$('soPartyList');if(soPartyList)soPartyList.innerHTML=[...db.parties].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(p=>'<option value="'+esc(p.name||'')+'">'+esc(p.code||'')+'</option>').join('');const salePartyList=$('salePartyList');if(salePartyList)salePartyList.innerHTML=[...new Set(active.map(o=>o.party).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(p=>'<option value="'+esc(p)+'"></option>').join('');const byUnit=(rows)=>{const sums={};rows.forEach(x=>{const u=x.u||'QTL';sums[u]=(sums[u]||0)+Number(x.q||0)});return Object.entries(sums).map(([u,q])=>qt(q,u)).join(' · ')||'0'};$('mOrdered').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:l.qty,u:lt(l)}))));$('mBalance').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),u:lt(l)}))));const parties=[...new Set(active.filter(o=>orderStatus(o)==='Ongoing').map(o=>o.party).filter(Boolean))];if($('saleSO').value)loadSaleLines()};
+  const oldRender=window.render;window.render=function(){normalize();oldRender();const oh=document.querySelector('#orders .lines thead tr'),sh=document.querySelector('#sales .lines thead tr');if(oh)oh.children[1].textContent='QTY TYPE';if(sh)sh.children[1].textContent='QTY TYPE';[...$('orderRows').rows].forEach((r,i)=>{const o=[...db.orders].reverse()[i];if(o){r.cells[4].textContent=o.lines.map(l=>qt(l.qty,lt(l))).join(' + ');r.cells[5].textContent=o.lines.map(l=>qt(orderLineSold(o.no,l.productCode,lt(l)),lt(l))).join(' + ');r.cells[6].textContent=o.lines.map(l=>qt(Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),lt(l))).join(' + ')}});[...$('salesRows').rows].forEach((r,i)=>{const s=[...db.sales].reverse()[i];if(s)r.cells[5].textContent=qt(s.qty,st(s))});const active=db.orders.filter(o=>o.status!=='Cancelled');const soPartyList=$('soPartyList');if(soPartyList)soPartyList.innerHTML=[...db.parties].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(p=>'<option value="'+esc(p.name||'')+'">'+esc(p.code||'')+'</option>').join('');const salePartyList=$('salePartyList');if(salePartyList)salePartyList.innerHTML=[...new Set(active.map(o=>o.party).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(p=>'<option value="'+esc(p)+'"></option>').join('');const byUnit=(rows)=>{const sums={};rows.forEach(x=>{const u=x.u||'QTL';sums[u]=(sums[u]||0)+Number(x.q||0)});return Object.entries(sums).map(([u,q])=>qt(q,u)).join(' · ')||'0'};$('mOrdered').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:l.qty,u:lt(l)}))));$('mBalance').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),u:lt(l)}))));const parties=[...new Set(active.filter(o=>orderStatus(o)==='Ongoing').map(o=>o.party).filter(Boolean))];$('saleSO').innerHTML='<option value="">Select party</option>'+parties.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');if($('saleSO').value)loadSaleLines()};
   normalize();
 })();
 
