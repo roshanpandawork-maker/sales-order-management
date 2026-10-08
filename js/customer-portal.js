@@ -81,7 +81,7 @@ function render() {
     : '<tr><td colspan="5" class="empty">No orders found.</td></tr>';
   const balanceRows = document.getElementById("balanceRows");
   if (balanceRows) balanceRows.innerHTML = balances.length
-    ? balances.map(row => `<tr><td><b>${esc(row.product_name || row.product_code || "-")}</b><div class="muted">${esc(row.product_code || "")}</div></td><td>${esc(row.unit || "")}</td><td>${fmt(row.ordered)}</td><td>${fmt(row.dispatched)}</td><td><b>${fmt(row.balance)}</b></td></tr>`).join("")
+    ? balances.map(row => `<tr><td><b>${esc(row.product_name || row.product_code || "-")}</b><div class="muted">${esc(row.product_code || "")}</div></td><td>${esc(row.unit || "")}</td><td>${fmt(row.ordered)}</td><td>${fmt(row.dispatched)}</td><td class="available-col"><b class="available-value">${fmt(row.balance)}</b></td></tr>`).join("")
     : '<tr><td colspan="5" class="empty">No open Sales Order balance.</td></tr>';
   document.getElementById("quoteRows").innerHTML = quotes.length
     ? quotes.map(quote => {
