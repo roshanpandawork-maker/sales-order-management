@@ -1,4 +1,40 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>SalesDesk</title></head>
-<body><p style="font-family:system-ui;text-align:center;margin-top:20vh">Opening SalesDesk…</p>
-<script src="js/route-404.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#102d2a">
+  <base href="/sales-order-management/">
+  <title>Opening SalesDesk</title>
+  <style>
+    :root{color-scheme:light;--ink:#172b2b;--muted:#647875;--green:#1d6858;--line:#e3ece8}
+    *{box-sizing:border-box}
+    body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 0,#e3f3ed 0,transparent 48%),#f5f8f7;color:var(--ink);font:15px/1.55 Inter,"Segoe UI",system-ui,sans-serif}
+    .card{width:min(100%,440px);padding:40px 34px 34px;border:1px solid #e6efeb;border-radius:24px;background:#ffffffed;box-shadow:0 24px 70px #14372b12;text-align:center}
+    .mark{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 20px;border-radius:17px;background:linear-gradient(145deg,#1c5e50,#35836c);color:#fff;font-weight:850;font-size:19px;letter-spacing:-.06em;box-shadow:0 9px 18px #1c5e5029}
+    .eyebrow{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.17em}
+    h1{margin:12px 0 7px;font-size:clamp(24px,6vw,30px);letter-spacing:-.04em;line-height:1.15}
+    .message{margin:0 auto;color:var(--muted);max-width:330px;font-size:14px}
+    .loading{display:flex;justify-content:center;align-items:center;gap:10px;margin:26px 0 0;color:#52716a;font-size:12px;font-weight:700}
+    .spinner{width:17px;height:17px;border:2px solid #d5e8e0;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+    .home{display:inline-flex;margin-top:23px;padding:10px 15px;border-radius:10px;background:var(--green);color:#fff;text-decoration:none;font-size:13px;font-weight:750}
+    .home[hidden]{display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(prefers-reduced-motion:reduce){.spinner{animation:none;border-top-color:#d5e8e0}}
+    @media(max-width:420px){.card{padding:34px 23px 27px;border-radius:20px}}
+  </style>
+</head>
+<body>
+  <main class="card" aria-live="polite">
+    <div class="mark" aria-hidden="true">SD</div>
+    <p class="eyebrow">SALESDESK CUSTOMER PORTAL</p>
+    <h1 id="title">Opening SalesDesk…</h1>
+    <p id="message" class="message">Preparing your secure customer workspace.</p>
+    <div id="loading" class="loading" role="status"><span class="spinner" aria-hidden="true"></span><span>Loading your portal</span></div>
+    <a id="home" class="home" href="./" hidden>Go to SalesDesk</a>
+    <noscript><p class="message">Please enable JavaScript to open your customer portal.</p></noscript>
+  </main>
+  <script src="js/route-404.js" data-base="/sales-order-management"></script>
+</body>
+</html>
