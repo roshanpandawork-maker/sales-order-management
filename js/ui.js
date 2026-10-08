@@ -138,7 +138,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   $('saleSOSelect')?.addEventListener('change',renderDispatchLines);
   $('saleSelectAllSO')?.addEventListener('click',()=>{const e=$('saleSOSelect');if(e)[...e.options].forEach(o=>o.selected=true);renderDispatchLines()});
   $('saleClearSO')?.addEventListener('click',()=>{const e=$('saleSOSelect');if(e)[...e.options].forEach(o=>o.selected=false);renderDispatchLines()});
-  $('salesForm').onsubmit=e=>{
+  $('salesForm').onsubmit=async e=>{
     e.preventDefault();
     const party=getSaleParty(),chosen=selectedSaleSOs();
     if(!party)return alert('Select a valid party.');
