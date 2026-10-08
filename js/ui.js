@@ -160,9 +160,22 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
       }
     }
     const b='DS'+Date.now();
-    allocations.forEach((a,i)=>db.sales.push({id:b+'-'+i,date:$('saleDate').value,so:a.source.so,party:party.name,partyCode:party.code,invoice:$('saleInvoice').value.trim(),productCode:a.l.productCode,qty:a.qty,qty_type:a.l.qtyType,rate:a.l.rate,remarks:$('saleRemarks').value}));
-    save();e.target.reset();$('saleDate').value=today();window.clearSaleLines();
-    alert('Dispatch saved. '+allocations.length+' SO allocation(s) created under one dispatch.');
+    const dispatchRows=allocations.map((a,i)=>({
+      id:b+'-'+i,date:$('saleDate').value,so:a.source.so,party:party.name,partyCode:party.code,
+      invoice:$('saleInvoice').value.trim(),productCode:a.l.productCode,qty:a.qty,
+      qty_type:a.l.qtyType,rate:a.l.rate,remarks:$('saleRemarks').value
+    }));
+    const {error:dispatchError}=await supabaseClient.from('sales').upsert(dispatchRows,{onConflict:'id'});
+    if(dispatchError){
+      console.error('Dispatch Supabase save failed:',dispatchError);
+      alert('Dispatch was NOT saved to Supabase.\\n\\n'+dispatchError.message);
+      return;
+    }
+    dispatchRows.forEach(row=>db.sales.push(row));
+    dispatchRows.forEach(row=>{if(prev.sales)prev.sales[row.id]=JSON.stringify(row)});
+    render();e.target.reset();$('saleDate').value=today();window.clearSaleLines();
+    setTag('Supabase connected · dispatch saved');
+    alert('Dispatch saved to Supabase. '+allocations.length+' SO allocation(s) created under one dispatch.');
   };
   const oldRender=window.render;window.render=function(){normalize();oldRender();const oh=document.querySelector('#orders .lines thead tr'),sh=document.querySelector('#sales .lines thead tr');if(oh)oh.children[1].textContent='QTY TYPE';if(sh)sh.children[1].textContent='QTY TYPE';[...$('orderRows').rows].forEach((r,i)=>{const o=[...db.orders].reverse()[i];if(o){r.cells[4].textContent=o.lines.map(l=>qt(l.qty,lt(l))).join(' + ');r.cells[5].textContent=o.lines.map(l=>qt(orderLineSold(o.no,l.productCode,lt(l)),lt(l))).join(' + ');r.cells[6].textContent=o.lines.map(l=>qt(Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),lt(l))).join(' + ')}});[...$('salesRows').rows].forEach((r,i)=>{const s=[...db.sales].reverse()[i];if(s)r.cells[5].textContent=qt(s.qty,st(s))});const active=db.orders.filter(o=>o.status!=='Cancelled');const soPartyList=$('soPartyList');if(soPartyList)soPartyList.innerHTML=[...db.parties].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(p=>'<option value="'+esc(p.name||'')+'">'+esc(p.code||'')+'</option>').join('');const salePartyList=$('salePartyList');if(salePartyList)salePartyList.innerHTML=[...new Set(active.map(o=>o.party).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(p=>'<option value="'+esc(p)+'"></option>').join('');const byUnit=(rows)=>{const sums={};rows.forEach(x=>{const u=x.u||'QTL';sums[u]=(sums[u]||0)+Number(x.q||0)});return Object.entries(sums).map(([u,q])=>qt(q,u)).join(' · ')||'0'};$('mOrdered').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:l.qty,u:lt(l)}))));$('mBalance').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),u:lt(l)}))));const parties=[...new Set(active.filter(o=>orderStatus(o)==='Ongoing').map(o=>o.party).filter(Boolean))];
 if($('saleSO').value)loadSaleLines()};
