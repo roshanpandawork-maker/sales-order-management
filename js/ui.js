@@ -126,7 +126,27 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
     $('saleDate').value=today();calcSale();
   };
   const saleSOEl=$('saleSO');
-  if(saleSOEl){saleSOEl.onchange=()=>window.loadSaleLines();saleSOEl.onblur=()=>{if(getSaleParty())window.loadSaleLines()}}
+  if(saleSOEl){
+    let dispatchPartyTimer;
+    const refreshDispatchParty=()=>{
+      clearTimeout(dispatchPartyTimer);
+      dispatchPartyTimer=setTimeout(()=>{
+        const party=getSaleParty();
+        if(party) window.loadSaleLines();
+        else {
+          $('saleParty').value='';
+          if($('saleSOSelect')) $('saleSOSelect').innerHTML='';
+          $('saleLines').innerHTML='<tr><td colspan="8" class="empty">Select a valid party to load open Sales Orders.</td></tr>';
+          $('saleHint').textContent='Choose a party';
+          if($('saleSOSelectHint')) $('saleSOSelectHint').textContent='Select one or more open SOs.';
+          calcSale();
+        }
+      },80);
+    };
+    saleSOEl.addEventListener('input',refreshDispatchParty);
+    saleSOEl.addEventListener('change',refreshDispatchParty);
+    saleSOEl.addEventListener('blur',refreshDispatchParty);
+  }
   $('saleSOSelect')?.addEventListener('change',renderDispatchLines);
   $('saleSelectAllSO')?.addEventListener('click',()=>{const e=$('saleSOSelect');if(e)[...e.options].forEach(o=>o.selected=true);renderDispatchLines()});
   $('saleClearSO')?.addEventListener('click',()=>{const e=$('saleSOSelect');if(e)[...e.options].forEach(o=>o.selected=false);renderDispatchLines()});
