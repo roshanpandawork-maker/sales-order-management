@@ -53,6 +53,7 @@ async function loadAll(){
     });
     loaded=true;
     renderAll();
+    window.dispatchEvent(new CustomEvent("sd:notifications",{detail:{items:data.notes,error:queries[10]?.error||null}}));
     return true;
   }catch(err){
     console.error("Stage 3 load failed:",err);
@@ -118,8 +119,8 @@ function renderPrices(){
   const dailyRows=todayDaily.map(x=>'<tr><td><b>'+esc(productName(x.product_code))+'</b><div class="small muted">'+esc(x.product_code)+'</div></td><td>'+esc(db.products.find(p=>p.code===x.product_code)?.unit||"")+'</td><td><b>'+money(x.rate)+'</b></td><td>'+esc(x.source||"MANUAL")+'</td><td>'+esc(x.note||"")+'</td><td><button type="button" class="secondary btnsm" data-edit-daily="'+esc(x.product_code)+'">Edit</button></td></tr>');
   const historyRows=data.history.slice(0,100).map(x=>'<tr><td>'+esc(x.effective_from?.slice(0,10)||"")+'</td><td>'+esc(x.party_code?partyName(x.party_code):"ALL CUSTOMERS")+'</td><td>'+esc(productName(x.product_code))+'</td><td>'+money(x.rate)+'</td><td>'+esc(x.source||"")+'</td><td>'+esc(x.note||"")+'</td></tr>');
   setSection("priceboard","Daily Prices & Live Price Board","Enter today's common selling price here. Customers see this price automatically; a party-specific price overrides it.",
-    '<div class="notice"><b>Where do I enter today's price?</b> Use the form below once per product. The rate is published to every customer portal for that date unless that customer has a party-specific rate.</div>'+
-    '<div class="panel"><h3>Enter / update today's daily price</h3><form id="stage3DailyPriceForm"><div class="grid">'+
+    '<div class="notice"><b>Where do I enter today&#39;s price?</b> Use the form below once per product. The rate is published to every customer portal for that date unless that customer has a party-specific rate.</div>'+
+    '<div class="panel"><h3>Enter / update today&#39;s daily price</h3><form id="stage3DailyPriceForm"><div class="grid">'+
       '<div class="field"><label>Product *</label><select id="stage3DailyProduct" required>'+opts(db.products,"code","name","Select product")+'</select></div>'+
       '<div class="field"><label>Daily rate incl. GST (₹) *</label><input id="stage3DailyRate" type="number" min="0" step=".01" required></div>'+
       '<div class="field"><label>Price date *</label><input id="stage3DailyDate" type="date" value="'+today()+'" required></div>'+
@@ -127,7 +128,7 @@ function renderPrices(){
       '<div class="field" style="grid-column:1/-1"><label>Note</label><input id="stage3DailyNote" placeholder="Optional market note / approval reference"></div>'+
     '</div><div class="actions"><button class="primary">Publish daily price</button></div></form></div>'+
     '<div class="metrics">'+metric("Products",db.products.length,"Selling masters")+metric("Today's prices",todayDaily.length,"Published today")+metric("Party overrides",data.prices.length,"Customer-specific rates")+metric("History",data.history.length,"Rate changes recorded")+'</div>'+
-    '<h3>Today's published prices</h3>'+table(["Product","Unit","Today's rate","Source","Note",""],dailyRows)+
+    '<h3>Today&#39;s published prices</h3>'+table(["Product","Unit","Today's rate","Source","Note",""],dailyRows)+
     '<div class="panel"><h3>Party-specific price override</h3><form id="stage3PriceForm"><div class="grid">'+
       '<div class="field"><label>Party *</label><select id="stage3PriceParty" required>'+opts(db.parties,"code","name","Select party")+'</select></div>'+
       '<div class="field"><label>Product *</label><select id="stage3PriceProduct" required>'+opts(db.products,"code","name","Select product")+'</select></div>'+
@@ -307,6 +308,13 @@ async function markRead(id){
   if(error)return alert(error.message);
   await loadAll();
 }
+async function markAllNotificationsRead(){
+  const unread=data.notes.filter(x=>!x.read_at);
+  if(!unread.length)return;
+  const {error}=await sb().from("notifications").update({read_at:new Date().toISOString()}).is("read_at",null);
+  if(error)return alert(error.message);
+  await loadAll();
+}
 async function requestStatus(id,status){
   const {error}=await sb().rpc("set_party_request_status",{p_request_id:id,p_status:status});
   if(error)return alert(error.message);
@@ -337,7 +345,7 @@ function init(){
   if(window.__sdStage3Init)return;
   window.__sdStage3Init=true;
   wire();
-  window.SD_STAGE3={reload:loadAll};
+  window.SD_STAGE3={reload:loadAll,markRead,markAllNotificationsRead,getNotifications:()=>data.notes.slice()};
   const waitForSession=async()=>{
     if(loaded||loading)return;
     if(!sb()){setTimeout(waitForSession,250);return}

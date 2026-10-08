@@ -4,7 +4,7 @@
 "use strict";
 const $=id=>document.getElementById(id),sb=()=>supabaseClient;
 const P={
-  emps:[],att:[],adj:[],
+  emps:[],att:[],adj:[],slips:[],history:[],settings:{paid_leave_days:4,pf_percent:12,pf_threshold:1000,pf_mode:'full',company_name:'',company_address:''},
   month:new Date().toISOString().slice(0,7),
   view:'dash',err:'',loading:false
 };
@@ -66,7 +66,8 @@ const dim=()=>{const[y,m]=ym();return new Date(y,m,0).getDate()};
 const dstr=d=>P.month+'-'+String(d).padStart(2,'0');
 const dailyRate=e=>Number(e.monthly_salary ?? Number(e.daily_rate||0)*30)/30;
 const monthlySalary=e=>Number(e.monthly_salary ?? Number(e.daily_rate||0)*30);
-const quota=e=>Math.max(0,Number(e.paid_leave_quota ?? 4));
+const quota=e=>Math.max(0,Number(e.paid_leave_quota ?? P.settings.paid_leave_days ?? 4));
+const pfFor=e=>{if(!e.pf_applicable)return 0;const base=monthlySalary(e),threshold=Number(P.settings.pf_threshold||0),basis=P.settings.pf_mode==='excess'?Math.max(0,base-threshold):base;return Math.round(basis*Number(P.settings.pf_percent||0))/100};
 
 const tbl=(h,r,cls='')=>`<div class="tablewrap"><table class="${cls}"><thead><tr>${h.map(x=>x.startsWith('<th')?x:`<th>${x}</th>`).join('')}</tr></thead><tbody>${r.join('')||'<tr><td class="empty" colspan="30">No records</td></tr>'}</tbody></table></div>`;
 
@@ -88,12 +89,13 @@ function stat(e){
   const sum=f=>P.adj.filter(x=>x.emp_id===e.id&&f(x.kind)).reduce((t,x)=>t+Number(x.amount),0);
   const adds=sum(k=>ADD.includes(k));
   const less=sum(k=>!ADD.includes(k));
-  const net=grossBase+extraLeaveWork+adds-less;
+  const pf=pfFor(e);
+  const net=grossBase+extraLeaveWork+adds-less-pf;
   return {
     p,h,l,lw,ab,um:Math.max(0,dim()-a.length),
     paidLeaveUsed,excessLeave,unpaidDays,attendanceDeduction,
     extraLeaveWorkDays,extraLeaveWork,
-    base,dr,grossBase,adds,less,net
+    base,dr,grossBase,adds,less,pf,net
   };
 }
 
@@ -104,15 +106,16 @@ function kpi(label,value,sub=''){
 function draw(){
   const s=$('payroll');if(!s)return;
   const nav=[
-    ['dash','Dashboard'],['att','Attendance'],['sal','Payroll'],['emp','Employees'],['adj','Adjustments']
+    ['dash','Dashboard'],['att','Attendance'],['sal','Payroll'],['emp','Employees'],['adj','Adjustments'],['settings','Settings']
   ].map(v=>`<button class="${P.view===v[0]?'primary':'secondary'}" data-view="${v[0]}">${v[1]}</button>`).join('');
   let body='';
   if(P.err){
-    body=`<div class="panel"><div class="emptybox">Run <b>supabase/04_payroll.sql</b> first, then refresh.<br>${esc(P.err)}</div></div>`;
+    body=`<div class="panel"><div class="emptybox">Check that <b>supabase/04_payroll.sql</b> and <b>supabase/05_payroll_v2.sql</b> are installed, then refresh.<br>${esc(P.err)}</div></div>`;
   }else if(P.view==='dash') body=dashboard();
   else if(P.view==='att') body=attendance();
   else if(P.view==='sal') body=salary();
   else if(P.view==='emp') body=employees();
+  else if(P.view==='settings') body=settingsView();
   else body=adjustments();
 
   s.innerHTML=`
@@ -133,7 +136,7 @@ function dashboard(){
   const abs=rows.reduce((t,r)=>t+r.s.ab,0);
   return `
   <div class="panel">
-    <div class="policybox"><strong>Company leave policy:</strong> 4 paid leave days per employee per month. Monthly salary is entered as the total salary; daily rate is automatically calculated as <b>monthly salary ÷ 30</b>. Working on a paid-leave day is recorded as <b>LW</b> and adds one daily rate extra (maximum 4 such days per month).</div>
+    <div class="policybox"><strong>Payroll policy:</strong> ${fmt(P.settings.paid_leave_days)} paid leave days by default. Daily rate is monthly salary ÷ 30. PF is ${fmt(P.settings.pf_percent)}% (${P.settings.pf_mode==='excess'?'salary above '+money(P.settings.pf_threshold):'full monthly salary'}) for employees enrolled in PF. Review policy under Settings.</div>
     <div class="paygrid">
       ${kpi('Active employees',P.emps.filter(e=>e.active).length,'Current employee master')}
       ${kpi('Base payroll',money(gross),'After attendance deductions')}
@@ -149,7 +152,7 @@ function dashboard(){
     <tr><td><b>${esc(e.name)}</b><div class="mini">${esc(e.designation||'')}</div></td>
     <td>${money(s.base)}</td><td>${money(s.dr)}</td><td>${fmt(s.paidLeaveUsed)} / ${fmt(quota(e))}</td>
     <td>${s.extraLeaveWorkDays?money(s.extraLeaveWork):'—'}</td><td>${s.attendanceDeduction?money(s.attendanceDeduction):'—'}</td>
-    <td><b>${money(s.net)}</b></td><td><button class="secondary btnsm" data-slip="${e.id}">Payslip</button></td></tr>`))}</div>`;
+    <td><b>${money(s.net)}</b></td><td><button class="secondary btnsm" data-slip="${e.id}">Payslip</button> ${slipStatus(e.id)}</td></tr>`))}</div>`;
 }
 
 function attendance(){
@@ -176,21 +179,26 @@ function salary(){
   const T=rows.reduce((t,r)=>t+r.s.net,0);
   return `<div class="panel">
     <h2>Payroll for ${esc(P.month)}</h2>
-    <div class="policybox">Base salary = <b>monthly salary</b> − unpaid attendance deduction. Daily rate = <b>monthly salary ÷ 30</b>. Up to 4 paid leaves are included in the monthly salary. Each <b>LW</b> adds one daily rate extra, up to 4 LW days. Bonus and overtime are added; advances and deductions are subtracted.</div>
-    ${tbl(['Employee','Monthly','Daily ÷30','P','H','L','LW','A','Leave quota','Attendance deduction','LW extra','+ Add','− Less','Net',''],rows.map(({e,s})=>`
+    <div class="policybox">Base salary = monthly salary − attendance deductions. PF follows the company settings and employee PF enrollment. A draft payslip uses the current live calculation; finalize it to save a monthly snapshot.</div>
+    ${tbl(['Employee','Monthly','Daily ÷30','P','H','L','LW','A','Leave quota','Attendance deduction','LW extra','PF','+ Add','− Less','Net','Payslip'],rows.map(({e,s})=>`
       <tr><td><b>${esc(e.name)}</b></td><td>${money(s.base)}</td><td>${money(s.dr)}</td><td>${s.p}</td><td>${s.h}</td><td>${s.l}</td><td>${s.lw}</td><td>${s.ab}</td><td>${fmt(s.paidLeaveUsed)}/${fmt(quota(e))}</td>
-      <td>${s.attendanceDeduction?money(s.attendanceDeduction):'—'}</td><td>${s.extraLeaveWork?money(s.extraLeaveWork):'—'}</td><td>${s.adds?money(s.adds):'—'}</td><td>${s.less?money(s.less):'—'}</td><td><b>${money(s.net)}</b></td><td><button class="secondary btnsm" data-slip="${e.id}">Payslip</button></td></tr>`))}
+      <td>${s.attendanceDeduction?money(s.attendanceDeduction):'—'}</td><td>${s.extraLeaveWork?money(s.extraLeaveWork):'—'}</td><td>${s.pf?money(s.pf):'—'}</td><td>${s.adds?money(s.adds):'—'}</td><td>${s.less?money(s.less):'—'}</td><td><b>${money(s.net)}</b></td><td><button class="secondary btnsm" data-slip="${e.id}">View</button> <button class="primary btnsm" data-finalize="${e.id}" ${P.slips.find(x=>x.emp_id===e.id&&x.month===P.month)?.status==='Final'?'disabled':''}>${P.slips.find(x=>x.emp_id===e.id&&x.month===P.month)?.status==='Final'?'Finalized':'Finalize'}</button></td></tr>`))}
     <div class="totalbar"><span class="muted">Total payable</span><strong>${money(T)}</strong></div>
-    <p class="small muted">A 31-day month does not increase the salary. A 30-day month does not reduce it. The daily calculation always uses monthly salary ÷ 30.</p>
+  <p class="small muted">A 31-day month does not increase the salary. The daily calculation always uses monthly salary ÷ 30. A finalized payslip is a saved snapshot; changes to attendance/settings do not rewrite it.</p>
   </div>`;
 }
 
 function employees(){
   return `<div class="panel"><h2>Employees <button class="primary" data-emp="new">+ Add employee</button></h2>
   <p class="small muted">Enter total monthly salary only. The system automatically stores/calculates daily rate as monthly salary ÷ 30. Default paid-leave quota is 4 days per month.</p>
-  ${tbl(['Name','Designation','Phone','Monthly salary','Daily rate','Paid leave','Joined','Status',''],P.emps.map(e=>`
-    <tr><td><b>${esc(e.name)}</b></td><td>${esc(e.designation||'')}</td><td>${esc(e.phone||'')}</td><td>${money(monthlySalary(e))}</td><td>${money(dailyRate(e))}</td><td>${fmt(quota(e))} days</td><td>${esc(e.joined||'')}</td><td><span class="pill ${e.active?'':'cancel'}">${e.active?'Active':'Inactive'}</span></td><td><button class="secondary btnsm" data-emp="${e.id}">Edit</button> <button class="danger btnsm" data-edel="${e.id}">Delete</button></td></tr>`))}</div>`;
+  ${tbl(['Name','Designation','Phone','Monthly salary','Daily rate','Paid leave','PF','Joined','Status',''],P.emps.map(e=>`
+    <tr><td><b>${esc(e.name)}</b></td><td>${esc(e.designation||'')}</td><td>${esc(e.phone||'')}</td><td>${money(monthlySalary(e))}</td><td>${money(dailyRate(e))}</td><td>${fmt(quota(e))} days</td><td>${e.pf_applicable?'Enrolled':'No'}</td><td>${esc(e.joined||'')}</td><td><span class="pill ${e.active?'':'cancel'}">${e.active?'Active':'Inactive'}</span></td><td><button class="secondary btnsm" data-emp="${e.id}">Edit</button> <button class="danger btnsm" data-edel="${e.id}">Delete</button></td></tr>`))}</div>`;
 }
+
+function settingsView(){const x=P.settings;return `<div class="panel"><h2>Payroll settings</h2><p class="small muted">These values drive new calculations and payslips. Confirm your company policy before using a finalized payroll.</p><form id="paySettings"><div class="grid"><div class="field"><label>Default paid leave days / month</label><input id="psLeave" type="number" min="0" max="31" step="1" value="${Number(x.paid_leave_days??4)}"></div><div class="field"><label>PF percentage</label><input id="psPf" type="number" min="0" max="100" step=".01" value="${Number(x.pf_percent??12)}"></div><div class="field"><label>PF threshold (₹)</label><input id="psThreshold" type="number" min="0" step=".01" value="${Number(x.pf_threshold??1000)}"></div><div class="field"><label>PF calculation</label><select id="psMode"><option value="full" ${x.pf_mode==='full'?'selected':''}>Apply to full monthly salary</option><option value="excess" ${x.pf_mode==='excess'?'selected':''}>Apply only above threshold</option></select></div><div class="field"><label>Company name</label><input id="psCompany" maxlength="160" value="${esc(x.company_name||'')}"></div><div class="field"><label>Company address</label><input id="psAddress" maxlength="500" value="${esc(x.company_address||'')}"></div></div><div class="actions"><button class="primary">Save settings</button></div></form><p class="small muted">PF is deducted only for employees marked as enrolled. The threshold and calculation mode are editable company policy settings, not legal advice.</p></div>`}
+
+function slipStatus(id){const x=P.slips.find(v=>v.emp_id===id&&v.month===P.month);return x?`<span class="pill">${esc(x.status)}</span>`:'<span class="mini">Draft</span>'}
+function snapshot(e){return {employee:{id:e.id,name:e.name,designation:e.designation||''},month:P.month,leave_quota:quota(e),stats:stat(e),adjustments:P.adj.filter(x=>x.emp_id===e.id).map(x=>({kind:x.kind,amount:Number(x.amount),note:x.note||''})),policy:{...P.settings}}}
 
 function adjustments(){
   return `<div class="panel"><h2>Add bonus / overtime / advance / deduction for ${esc(P.month)}</h2>
@@ -211,7 +219,8 @@ function empModal(e){
     fld('nD','Designation',e.designation)+
     fld('nP','Phone',e.phone)+
     fld('nS','Total monthly salary (₹) *',monthly,'number','min="0" step=".01"')+
-    fld('nQ','Paid leave quota / month',e.paid_leave_quota??4,'number','min="0" max="31" step="1"')+
+    fld('nQ','Paid leave quota / month',e.paid_leave_quota??P.settings.paid_leave_days??4,'number','min="0" max="31" step="1"')+
+    `<div class="field"><label><input id="nPF" type="checkbox" ${e.pf_applicable===false?'':'checked'}> PF enrolled</label></div>`+
     fld('nJ','Joining date',e.joined,'date')+
     `<div class="field"><label>Status</label><select id="nA"><option value="1" ${e.active===false?'':'selected'}>Active</option><option value="0" ${e.active===false?'selected':''}>Inactive</option></select></div>`,
     ()=>{
@@ -220,7 +229,7 @@ function empModal(e){
       const row={
         name:n,designation:$('nD').value,phone:$('nP').value,
         monthly_salary:sal,daily_rate:Number((sal/30).toFixed(2)),
-        paid_leave_quota:Number($('nQ').value||4),
+        paid_leave_quota:Number($('nQ').value||P.settings.paid_leave_days||4),pf_applicable:$('nPF').checked,
         joined:$('nJ').value||null,active:$('nA').value==='1'
       };
       const q=e.id?sb().from('employees').update(row).eq('id',e.id):sb().from('employees').insert(row);
@@ -231,16 +240,17 @@ function empModal(e){
 
 function slip(id){
   const e=P.emps.find(x=>x.id===id);if(!e)return;
-  const s=stat(e),a=$('printArea')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'printArea'}));
-  const ent=P.adj.filter(x=>x.emp_id===id).map(x=>`<tr><td>${esc(x.kind)}${x.note?' · '+esc(x.note):''}</td><td>${ADD.includes(x.kind)?'+':'−'} ${money(x.amount)}</td></tr>`).join('');
-  a.innerHTML=`<h2>Payslip · ${esc(P.month)}</h2>
-  <p><b>${esc(e.name)}</b><br>${esc(e.designation||'')}<br>Monthly salary ${money(s.base)} · Daily rate ${money(s.dr)}<br>Paid leave quota ${fmt(quota(e))} days</p>
+  const saved=P.slips.find(x=>x.emp_id===id&&x.status==='Final'),d=saved?.d||snapshot(e),s=d.stats,emp=d.employee,policy=d.policy||P.settings,a=$('printArea')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'printArea'}));
+  const ent=(d.adjustments||[]).map(x=>`<tr><td>${esc(x.kind)}${x.note?' · '+esc(x.note):''}</td><td>${ADD.includes(x.kind)?'+':'−'} ${money(x.amount)}</td></tr>`).join('');
+  a.innerHTML=`<h2>${esc(policy.company_name||'Company')} · Payslip ${saved?'(Final)':'(Draft)'}</h2><p>${esc(policy.company_address||'')}</p><h3>Payslip · ${esc(d.month)}</h3>
+  <p><b>${esc(emp.name)}</b><br>${esc(emp.designation||'')}<br>Monthly salary ${money(s.base)} · Daily rate ${money(s.dr)}<br>Paid leave quota ${fmt(d.leave_quota??quota(e))} days</p>
   <table><tbody>
   <tr><td>Present / Half / Paid leave / LW / Absent</td><td>${s.p} / ${s.h} / ${s.l} / ${s.lw} / ${s.ab}</td></tr>
   <tr><td>Paid leave used</td><td>${fmt(s.paidLeaveUsed)} / ${fmt(quota(e))}</td></tr>
   <tr><td>Attendance deduction</td><td>− ${money(s.attendanceDeduction)}</td></tr>
   <tr><td>Salary after attendance</td><td>${money(s.grossBase)}</td></tr>
   <tr><td>Worked-on-leave extra</td><td>+ ${money(s.extraLeaveWork)}</td></tr>
+  <tr><td>PF deduction (${fmt(policy.pf_percent)}%)</td><td>− ${money(s.pf||0)}</td></tr>
   ${ent}
   <tr><td><b>Net pay</b></td><td><b>${money(s.net)}</b></td></tr>
   </tbody></table>
@@ -270,14 +280,16 @@ async function markDay(day){
 async function load(){
   const[y,m]=ym(),end=new Date(Date.UTC(y,m,1)).toISOString().slice(0,10);
   P.loading=true;
-  const [a,b,c]=await Promise.all([
+  const [a,b,c,d,e]=await Promise.all([
     sb().from('employees').select('*').order('name'),
     sb().from('attendance').select('*').gte('date',P.month+'-01').lt('date',end),
-    sb().from('pay_adjustments').select('*').eq('month',P.month).order('id')
+    sb().from('pay_adjustments').select('*').eq('month',P.month).order('id'),
+    sb().from('payroll_settings').select('*').eq('id',1).maybeSingle(),
+    sb().from('payslips').select('*')
   ]);
-  const er=a.error||b.error||c.error;
+  const er=a.error||b.error||c.error||d.error||e.error;
   P.err=er?er.message:'';
-  if(!er){P.emps=a.data||[];P.att=b.data||[];P.adj=c.data||[]}
+  if(!er){P.emps=a.data||[];P.att=b.data||[];P.adj=c.data||[];P.settings={...P.settings,...(d.data||{})};P.history=e.data||[];P.slips=P.history.filter(x=>x.month===P.month)}
   P.loading=false;draw();
 }
 
@@ -296,14 +308,16 @@ function build(){
     else if(g=t('[data-m]')){const[i,d]=g.dataset.m.split('|');mark(i,d)}
     else if(g=t('[data-col]'))markDay(g.dataset.col)
     else if(g=t('[data-emp]'))empModal(g.dataset.emp==='new'?null:P.emps.find(x=>x.id===g.dataset.emp))
-    else if(g=t('[data-edel]')){if(confirm('Delete this employee and ALL their attendance and entries?'))sb().from('employees').delete().eq('id',g.dataset.edel).then(r=>{if(r.error)alert(r.error.message);load()})}
+    else if(g=t('[data-edel]')){if(P.history.some(x=>x.emp_id===g.dataset.edel))return alert('This employee has saved payroll history. Mark them inactive instead of deleting the record.');if(confirm('Delete this employee and ALL their attendance and entries?'))sb().from('employees').delete().eq('id',g.dataset.edel).then(r=>{if(r.error)alert(r.error.message);load()})}
     else if(g=t('[data-slip]'))slip(g.dataset.slip)
+    else if(g=t('[data-finalize]')){const emp=P.emps.find(x=>x.id===g.dataset.finalize);if(emp&&confirm(`Save a final payslip snapshot for ${emp.name} · ${P.month}?`))sb().from('payslips').upsert({emp_id:emp.id,month:P.month,d:snapshot(emp),status:'Final',edited:false,updated_at:new Date().toISOString()},{onConflict:'emp_id,month'}).then(r=>{if(r.error)alert(r.error.message);else load()})}
     else if(g=t('[data-adel]')){if(confirm('Delete this entry?'))sb().from('pay_adjustments').delete().eq('id',g.dataset.adel).then(r=>{if(r.error)alert(r.error.message);load()})}
   });
   s.addEventListener('change',e=>{
     if(e.target.id==='pyMonth'&&e.target.value){P.month=e.target.value;load()}
   });
   s.addEventListener('submit',e=>{
+    if(e.target.id==='paySettings'){e.preventDefault();const settings={id:1,paid_leave_days:Number($('psLeave').value),pf_percent:Number($('psPf').value),pf_threshold:Number($('psThreshold').value),pf_mode:$('psMode').value,company_name:$('psCompany').value.trim(),company_address:$('psAddress').value.trim()};sb().from('payroll_settings').upsert(settings,{onConflict:'id'}).then(r=>{if(r.error)alert(r.error.message);else{alert('Payroll settings saved.');load()}});return}
     if(e.target.id!=='adjForm')return;
     e.preventDefault();
     sb().from('pay_adjustments').insert({

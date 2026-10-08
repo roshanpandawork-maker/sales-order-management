@@ -1,6 +1,9 @@
 name: Deploy SalesDesk to GitHub Pages
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -8,33 +11,55 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: github-pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run repository checks
+        run: npm run check
+
+      - name: Run existing automated tests
+        run: npm test
+
+      - name: Check application version
+        run: npm run version:check
+
+      - name: Build deployable site
+        run: npm run build:web
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v6
-
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-
-      - name: Build web distribution
-        run: npm run build:web
-
-      - name: Upload SalesDesk site
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
 
       - name: Deploy SalesDesk
         id: deployment

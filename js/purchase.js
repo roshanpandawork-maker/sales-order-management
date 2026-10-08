@@ -9,8 +9,6 @@
   const MSG = "purchase_messages";
 
 const esc=window.esc;
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
 
   const nums = v => String(v || "").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
   const firstNum = v => nums(v)[0] || "";

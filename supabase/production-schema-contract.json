@@ -1,0 +1,7 @@
+{
+  "source": "Connected production schema inspection; this is a reference only, not a migration.",
+  "observedAt": "2026-10-09",
+  "applicationTablesAvailableInProduction": [
+    "company_profile"
+  ]
+}

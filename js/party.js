@@ -7,8 +7,6 @@ const qs = new URLSearchParams(location.search);
 const token = qs.get("token") || new URLSearchParams((location.hash || "").replace(/^#/, "")).get("token");
 
 const esc = window.esc;
-  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-}[c]));
 
 const fmt = n => Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 3 });
 
