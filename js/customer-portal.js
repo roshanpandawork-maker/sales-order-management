@@ -61,11 +61,12 @@ function render() {
   const balances = Array.isArray(data.balances) ? data.balances : [];
   const ordered = orders.reduce((sum, order) => sum + (Array.isArray(order.items)
     ? order.items.reduce((subtotal, item) => subtotal + Number(item.qty || 0), 0) : 0), 0);
-  const balance = balances.reduce((sum, row) => sum + Number(row.balance || 0), 0);
+  const balanceByCode = new Map(balances.map(row => [String(row.product_code || ""), row]));
+  const availableProducts = balances.filter(row => Number(row.balance || 0) > 0).length;
 
   document.getElementById("orders").textContent = orders.filter(order => String(order.status || "").toLowerCase() !== "closed").length;
   document.getElementById("ordered").textContent = fmt(ordered);
-  document.getElementById("balance").textContent = fmt(balance);
+  document.getElementById("availabilityCount").textContent = availableProducts;
   document.getElementById("quotes").textContent = quotes.length;
   const now = new Date();
   const updated = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -74,8 +75,8 @@ function render() {
   document.getElementById("priceUpdated").textContent = `Updated ${updated}`;
 
   document.getElementById("priceRows").innerHTML = prices.length
-    ? prices.map(item => `<tr><td><b>${esc(item.product_name)}</b></td><td>${esc(item.unit)}</td><td class="price">${money(item.rate)}</td><td>${fmt(item.gst_rate)}%</td></tr>`).join("")
-    : '<tr><td colspan="4" class="empty">No prices have been published for your account today.</td></tr>';
+    ? prices.map(item => { const available = balanceByCode.get(String(item.product_code || "")); return `<tr><td><b>${esc(item.product_name)}</b></td><td>${esc(item.unit)}</td><td class="available-col"><b class="available-value">${fmt(available?.balance || 0)}</b></td><td class="price">${money(item.rate)}</td><td>${fmt(item.gst_rate)}%</td></tr>`; }).join("")
+    : '<tr><td colspan="5" class="empty">No prices have been published for your account today.</td></tr>';
   document.getElementById("orderRows").innerHTML = orders.length
     ? orders.map(order => `<tr><td><b>${esc(order.so)}</b></td><td>${esc(order.date)}</td><td>${esc(order.due || "-")}</td><td>${esc(order.status || "Ongoing")}</td><td>${fmt((order.items || []).length)} item(s)</td></tr>`).join("")
     : '<tr><td colspan="5" class="empty">No orders found.</td></tr>';
