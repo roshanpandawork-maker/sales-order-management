@@ -347,8 +347,14 @@ function init(){
     }catch(err){console.warn("Stage 3 session check:",err)}
     setTimeout(waitForSession,500);
   };
-  window.addEventListener("salesdesk:ready",()=>setTimeout(waitForSession,100));
+  // Start independently of the main UI event bus. The auth module already owns the
+  // Supabase session, so Stage 3 can safely wait for that session here.
   waitForSession();
+  if(sb()){
+    sb().auth.onAuthStateChange((event,session)=>{
+      if(session && !loaded && !loading) setTimeout(waitForSession,100);
+    });
+  }
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
