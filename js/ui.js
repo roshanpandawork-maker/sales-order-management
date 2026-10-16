@@ -52,7 +52,12 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
   window.addOrderLine=function(){const tr=document.createElement('tr');tr.innerHTML=`<td><select class="ol-product" required>${opts(db.products,'Choose product')}</select></td><td><select class="ol-type">${optsU('QTL')}</select></td><td><input class="ol-qty" type="number" min=".001" step=".001" placeholder="0" required></td><td><input class="ol-rate" type="number" min="0" step=".01" placeholder="0.00"></td><td class="ol-value">₹0.00</td><td><button type="button" class="danger btnsm" data-act="removeLine">Remove</button></td>`;$('orderLines').appendChild(tr);const p=tr.querySelector('.ol-product'),u=tr.querySelector('.ol-type');p.onchange=()=>{const x=db.products.find(v=>v.code===p.value);u.value=U.includes(x?.unit)?x.unit:'QTL';tr.querySelector('.ol-rate').value=x?.rate||0;calcOrder()};u.onchange=calcOrder;tr.querySelectorAll('input').forEach(i=>i.oninput=calcOrder)};
   $('orderForm').onsubmit=e=>{e.preventDefault();const lines=[...$('orderLines').rows].map(r=>{const productCode=r.querySelector('.ol-product').value,p=db.products.find(x=>x.code===productCode),rate=Number(r.querySelector('.ol-rate').value||0),gstRate=Number(p?.gst_rate||0);return {productCode,qtyType:r.querySelector('.ol-type').value,qty:Number(r.querySelector('.ol-qty').value),rate,gstRate,rateExclGst:gstRate>0?rate/(1+gstRate/100):rate}}).filter(x=>x.productCode&&x.qty>0);if(!lines.length)return alert('Add at least one valid product line.');if(lines.length!==$('orderLines').rows.length)return alert('Complete or remove blank product lines.');if(new Set(lines.map(x=>x.productCode+'|'+x.qtyType)).size!==lines.length)return alert('Each product + QTY TYPE should appear only once per SO.');const partyName=$('soParty').value.trim();const p=db.parties.find(x=>String(x.name||'').trim().toLowerCase()===partyName.toLowerCase());if(!p)return alert('Select a valid party from the party list.');db.orders.push({no:$('soNo').value,date:$('soDate').value,partyCode:p.code,party:p.name,due:$('soDue').value,ref:$('soRef').value,remarks:$('soRemarks').value,lines,status:'Ongoing',price_includes_gst:true});save();e.target.reset();resetOrder();alert('Sales order saved.')};
   window.orderLineSold=(no,code,type)=>db.sales.filter(s=>s.so===no&&s.productCode===code&&(!type||st(s)===type)).reduce((a,s)=>a+Number(s.qty),0);
-  window.orderStatus=o=>o.status==='Cancelled'?'Cancelled':o.lines.every(l=>l.qty-orderLineSold(o.no,l.productCode,lt(l))<=.000001)?'Closed':'Ongoing';
+  window.orderStatus=o=>{
+    if(o.status==='Cancelled')return 'Cancelled';
+    // Over-dispatch is an exception requiring review; do not auto-close that SO.
+    if((o.lines||[]).some(l=>orderLineSold(o.no,l.productCode,lt(l))-Number(l.qty||0)>.000001))return 'Ongoing';
+    return o.lines.every(l=>l.qty-orderLineSold(o.no,l.productCode,lt(l))<=.000001)?'Closed':'Ongoing';
+  };
   window.orderSold=o=>o.lines.reduce((a,l)=>a+orderLineSold(o.no,l.productCode,lt(l)),0);
   function getSaleParty(){
     const raw=String($('saleSO')?.value||'').trim();
@@ -86,18 +91,19 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
       selectedOrders.forEach(o=>(o.lines||[]).forEach(l=>{
         if(String(l.productCode)!==String(p.code))return;
         const u=lt(l),sold=orderLineSold(o.no,l.productCode,u),bal=Math.max(0,Number(l.qty||0)-sold);
-        if(bal>0)sources.push({so:o.no,balance:bal,rate:Number(l.rate||0),unit:u});
+        // Keep fully fulfilled SO product lines selectable so an over-dispatch can be recorded explicitly.
+        sources.push({so:o.no,balance:bal,rate:Number(l.rate||0),unit:u,ordered:Number(l.qty||0)});
       }));
+      if(!sources.length)return;
       const total=sources.reduce((n,x)=>n+x.balance,0);
-      if(total<=0)return;
       const rates=[...new Set(sources.map(x=>x.rate))];
       const defaultRate=rates.length?rates[0]:Number(p.rate||0);
-      const preview=sources.map(x=>esc(x.so)+' · '+fmt(x.balance)+' '+esc(x.unit)).join(' + ');
+      const preview=sources.map(x=>esc(x.so)+' · '+fmt(x.balance)+' '+esc(x.unit)+(x.balance<=0?' · fulfilled':'')).join(' + ');
       const tr=document.createElement('tr');
       tr.dataset.code=p.code;tr.dataset.qtyType=p.unit||'QTL';tr.dataset.sources=JSON.stringify(sources);
       tr.innerHTML='<td><b>'+esc(p.name||p.code)+'</b><div class="small muted">'+esc(p.code)+'</div></td>'+
         '<td><span class="tag">'+esc(p.unit||'QTL')+'</span></td><td><b>'+fmt(total)+'</b></td><td>—</td><td><b>'+fmt(total)+'</b></td>'+
-        '<td><input class="sl-qty" type="number" min="0" max="'+total+'" step=".001" placeholder="0"></td>'+
+        '<td><input class="sl-qty" type="number" min="0" step=".001" placeholder="0" title="Quantity above the selected SO balance will be marked OVER and kept for review"></td>'+
         '<td><input class="sl-rate" type="number" min="0" step=".01" value="'+esc(defaultRate)+'" title="Dispatch rate including GST"></td>'+
         '<td><span class="tag allocation-status" title="Allocation follows the selected SO order">'+preview+'</span></td>';
       tr.querySelectorAll('input').forEach(i=>i.oninput=calcSale);
@@ -156,14 +162,19 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
       }
       if(remaining>1e-8){
         const available=line.sources.reduce((n,x)=>n+Number(x.balance||0),0);
-        return alert('Not enough selected SO balance for '+line.productCode+'. Short: '+fmt(remaining)+' '+line.qtyType+'. Selected SOs have '+fmt(available)+' '+line.qtyType+' available. Select another SO above and try again.');
+        const overSource=line.sources.find(x=>String(x.unit).toUpperCase()===String(line.qtyType).toUpperCase())||line.sources[0];
+        if(!overSource)return alert('No matching Sales Order product line found for over-dispatch: '+line.productCode+'.');
+        allocations.push({source:overSource,l:line,qty:remaining,over:true});
+        line.overQty=remaining;
+        line.availableBeforeOver=available;
       }
     }
     const b='DS'+Date.now();
     const dispatchRows=allocations.map((a,i)=>({
       id:b+'-'+i,date:$('saleDate').value,so:a.source.so,party:party.name,partyCode:party.code,
       invoice:$('saleInvoice').value.trim(),productCode:a.l.productCode,qty:a.qty,
-      qty_type:a.l.qtyType,rate:a.l.rate,remarks:$('saleRemarks').value
+      qty_type:a.l.qtyType,rate:a.l.rate,
+      remarks:[ $('saleRemarks').value.trim(), a.over?'OVER DISPATCH: '+fmt(a.qty)+' '+a.l.qtyType+' above selected SO balance — SO kept open for review.':'' ].filter(Boolean).join(' | ')
     }));
     const {error:dispatchError}=await supabaseClient.from('sales').upsert(dispatchRows,{onConflict:'id'});
     if(dispatchError){
@@ -175,7 +186,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
     dispatchRows.forEach(row=>{if(prev.sales)prev.sales[row.id]=JSON.stringify(row)});
     render();e.target.reset();$('saleDate').value=today();window.clearSaleLines();
     setTag('Supabase connected · dispatch saved');
-    alert('Dispatch saved to Supabase. '+allocations.length+' SO allocation(s) created under one dispatch.');
+    const overTotal=allocations.filter(a=>a.over).reduce((n,a)=>n+a.qty,0);
+    alert('Dispatch saved to Supabase. '+allocations.length+' SO allocation(s) created under one dispatch.'+(overTotal>0?' OVER DISPATCH recorded: '+fmt(overTotal)+' extra quantity. Affected Sales Order(s) remain open for review.':''));
   };
   const oldRender=window.render;window.render=function(){normalize();oldRender();const oh=document.querySelector('#orders .lines thead tr'),sh=document.querySelector('#sales .lines thead tr');if(oh)oh.children[1].textContent='QTY TYPE';if(sh)sh.children[1].textContent='QTY TYPE';[...$('orderRows').rows].forEach((r,i)=>{const o=[...db.orders].reverse()[i];if(o){r.cells[4].textContent=o.lines.map(l=>qt(l.qty,lt(l))).join(' + ');r.cells[5].textContent=o.lines.map(l=>qt(orderLineSold(o.no,l.productCode,lt(l)),lt(l))).join(' + ');r.cells[6].textContent=o.lines.map(l=>qt(Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),lt(l))).join(' + ')}});[...$('salesRows').rows].forEach((r,i)=>{const s=[...db.sales].reverse()[i];if(s)r.cells[5].textContent=qt(s.qty,st(s))});const active=db.orders.filter(o=>o.status!=='Cancelled');const soPartyList=$('soPartyList');if(soPartyList)soPartyList.innerHTML=[...db.parties].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).map(p=>'<option value="'+esc(p.name||'')+'">'+esc(p.code||'')+'</option>').join('');const salePartyList=$('salePartyList');if(salePartyList)salePartyList.innerHTML=[...new Set(active.map(o=>o.party).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(p=>'<option value="'+esc(p)+'"></option>').join('');const byUnit=(rows)=>{const sums={};rows.forEach(x=>{const u=x.u||'QTL';sums[u]=(sums[u]||0)+Number(x.q||0)});return Object.entries(sums).map(([u,q])=>qt(q,u)).join(' · ')||'0'};$('mOrdered').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:l.qty,u:lt(l)}))));$('mBalance').textContent=byUnit(active.flatMap(o=>o.lines.map(l=>({q:Math.max(0,l.qty-orderLineSold(o.no,l.productCode,lt(l))),u:lt(l)}))));const parties=[...new Set(active.filter(o=>orderStatus(o)==='Ongoing').map(o=>o.party).filter(Boolean))];
 if($('saleSO').value)loadSaleLines()};
