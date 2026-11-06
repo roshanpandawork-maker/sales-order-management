@@ -63,7 +63,7 @@ function addLine(v={}){
 function renumber(){[...($("bsLines")?.rows||[])].forEach((r,i)=>r.querySelector(".bs-sno").textContent=i+1)}
 function lines(){return [...($("bsLines")?.rows||[])].map(r=>({description:r.querySelector(".bs-desc").value.trim(),bags:num(r.querySelector(".bs-bags").value),hsn:r.querySelector(".bs-hsn").value.trim(),qty:num(r.querySelector(".bs-qty").value),unit:r.querySelector(".bs-unit").value.trim(),inclRate:num(r.querySelector(".bs-incl").value),rate:num(r.querySelector(".bs-rate").value),per:r.querySelector(".bs-per").value.trim(),gst:num($("gstRate").value)})).filter(x=>x.description||x.qty||x.rate)}
 function totals(){
- const ls=lines(),taxable=ls.reduce((a,x)=>a+x.qty*x.rate,0),gst=taxable*num($("gstRate").value)/100,inter=$("taxMode").value==="inter",cg=inter?0:gst/2,sg=inter?0:gst/2,ig=inter?gst:0,other=num($("otherAmount").value),round=num($("roundOff").value),total=taxable+cg+sg+ig+other+round;
+ const ls=lines(),taxable=ls.reduce((a,x)=>a+x.qty*x.rate,0),gst=taxable*num($("gstRate").value)/100,inter=$("taxMode").value==="inter",cg=inter?0:Math.round(gst/2*100)/100,sg=inter?0:Math.round(gst/2*100)/100,ig=inter?Math.round(gst*100)/100:0,other=num($("otherAmount").value),round=num($("roundOff").value),total=taxable+cg+sg+ig+other+round;
  return{ls,taxable,cg,sg,ig,other,round,total};
 }
 function calc(){
@@ -83,7 +83,7 @@ function amountWords(n){
  let s="";if(x>=1e7){s+=h(Math.floor(x/1e7))+" Crore ";x%=1e7}if(x>=1e5){s+=h(Math.floor(x/1e5))+" Lakh ";x%=1e5}if(x>=1e3){s+=h(Math.floor(x/1e3))+" Thousand ";x%=1e3}if(x){s+=h(x)+" "}return("INR "+s.trim()+" Only").replace(/\s+/g," ");
 }
 function printHTML(o){
- const t=(()=>{const ls=o.lines||[],tax=ls.reduce((a,x)=>a+num(x.qty)*num(x.rate),0),gst=tax*num(o.gstRate)/100,inter=o.taxMode==="inter";return{tax,cg:inter?0:gst/2,sg:inter?0:gst/2,ig:inter?gst:0,total:tax+gst+num(o.otherAmount)+num(o.roundOff)}})();
+ const t=(()=>{const ls=o.lines||[],tax=ls.reduce((a,x)=>a+num(x.qty)*num(x.rate),0),gst=tax*num(o.gstRate)/100,inter=o.taxMode==="inter",cg=inter?0:Math.round(gst/2*100)/100,sg=inter?0:Math.round(gst/2*100)/100,ig=inter?Math.round(gst*100)/100:0;return{tax,cg,sg,ig,total:tax+cg+sg+ig+num(o.otherAmount)+num(o.roundOff)}})();
  const f=k=>esc(o[k]||"—"),m=money;
  const detail=(label,key)=>'<div class="d"><b>'+label+'</b><span>'+f(key)+'</span></div>';
  const rows=(o.lines||[]).map((x,i)=>'<tr><td>'+ (i+1)+'</td><td><b>'+esc(x.description)+'</b></td><td>'+esc(x.bags||"")+'</td><td>'+esc(x.hsn)+'</td><td class="r">'+fmt(x.qty)+' '+esc(x.unit)+'</td><td class="r">'+m(x.inclRate)+'</td><td class="r">'+m(x.rate)+'</td><td>'+esc(x.per)+'</td><td class="r">'+m(x.qty*x.rate)+'</td></tr>').join("");
