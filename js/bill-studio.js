@@ -33,15 +33,15 @@ function render(){
  field("coAddress","Registered Address",defaults.coAddress)+field("coState","State Name",defaults.coState)+field("coStateCode","State Code",defaults.coStateCode)+field("coEmail","E-mail",defaults.coEmail)+
  field("bankName","Bank Name",defaults.bankName)+field("bankBranch","Branch",defaults.bankBranch)+field("bankAccount","A/c No.",defaults.bankAccount)+field("bankIfsc","Branch & IFSC Code",defaults.bankIfsc)+'</div>'+
  '<div class="bs-block-title">Invoice details</div><div class="bs-grid">'+defs.slice(0,21).map(x=>field(...x)).join("")+'</div>'+
- '<div class="bs-block-title">Buyer (Bill to)</div><div class="bs-grid">'+defs.slice(21,30).map(x=>field(...x)).join("")+'</div>'+
- '<div class="bs-block-title">Despatch To</div><div class="bs-grid">'+defs.slice(30,36).map(x=>field(...x)).join("")+'</div>'+
+ '<div class="bs-block-title">Buyer (Bill to)</div><div class="bs-grid">'+defs.slice(21,29).map(x=>field(...x)).join("")+'</div>'+
+ '<div class="bs-block-title">Despatch To</div><div class="bs-grid">'+defs.slice(29,35).map(x=>field(...x)).join("")+'</div>'+
  '<div class="bs-block-title">Goods / Services</div><div class="bs-lines tablewrap"><table><thead><tr><th>Sl No.</th><th>Description of Goods</th><th>Bags / TIN</th><th>HSN/SAC</th><th>Quantity</th><th>Unit</th><th>Rate (Incl. Tax)</th><th>Rate</th><th>Per</th><th>Amount</th><th></th></tr></thead><tbody id="bsLines"></tbody></table></div><div class="bs-actions"><button type="button" class="secondary" id="bsAddLine">＋ Add item</button></div>'+
  '<div class="bs-totals"><div><div class="bs-block-title" style="margin-top:0">Tax / adjustment settings</div><div class="bs-grid">'+
  '<div class="field"><label for="taxMode">Tax mode</label><select id="taxMode"><option value="intra">Output CGST + Output SGST</option><option value="inter">Output IGST</option></select></div>'+
  field("gstRate","GST Rate %","5","number",'min="0" max="100" step=".01"')+field("otherAmount","Other Amount (₹)","0","number",'step=".01"')+field("roundOff","Round Off (₹)","0","number",'step=".01"')+'</div>'+
  '<div class="bs-block-title">Declaration / signature</div><div class="bs-grid">'+field("declaration","Declaration","We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.")+field("jurisdiction","Jurisdiction","SUBARNAPUR JURISDICTION")+field("preparedBy","Prepared By","")+field("checkedBy","Checked By","")+field("authorisedBy","Authorised Signatory","Authorised Signatory")+'</div></div>'+
  '<div class="bs-total-list" id="bsTotals"></div></div>'+
- '<div class="field" style="margin-top:12px"><label for="remarks">Remarks</label><textarea id="remarks" rows="2">'+esc(defs[36][2])+'</textarea></div>'+
+ '<div class="field" style="margin-top:12px"><label for="remarks">Remarks</label><textarea id="remarks" rows="2">'+esc(defs[35][2])+'</textarea></div>'+
  '<div class="bs-actions"><button type="button" class="primary" id="bsPrint">Preview / Print / Save as PDF</button><button type="button" class="secondary" id="bsSave">Save Draft</button><button type="button" class="secondary" id="bsClear">Clear Form</button></div></form>'+
  '<div class="panel"><h2>Saved drafts on this device</h2><div id="bsDrafts" class="bs-drafts"></div></div>';
  addLine();
