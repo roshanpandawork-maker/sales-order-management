@@ -19,8 +19,8 @@ const defs=[
 ["invNo","Invoice No.","SRO/26-27/","text"],["invDate","Dated",today(),"date"],["ewayNo","e-Way Bill No.","","text"],["deliveryNote","Delivery Note","","text"],
 ["paymentTerms","Mode / Terms of Payment","","text"],["qualityCondition","Quality Condition","NILL","text"],["referenceNo","Reference No. & Date.","","text"],["lrNo","LR No.","","text"],["lrDate","LR Date","","date"],
 ["transporter","Transporter","","text"],["dispatchFrom","Despatch From (Place)","Singhijuba","text"],["destination","Destination","GAJABANDH","text"],["bolNo","Bill of Lading / LR-RR No.","","text"],["vehicleNo","Vehicle No.","","text"],["broker","Broker Name","","text"],["driverMobile","Driver Mobile No.","","text"],["driverName","Driver Name","","text"],["driverDL","Driver DL No.","","text"],["ownerName","Owner Name","","text"],["poDate","PO No. & Date.","","text"],["termsDelivery","Terms of Delivery","Ex-Factory","text"],
-["buyerName","Buyer (Bill to)","KASTURI TRADERS","text"],["buyerAddress","Buyer Address","Plot No-750, Khata No-108, Gajabandh, Rampur Road, Rampur, Gajbandh, Subarnapur, Odisha","text"],["buyerGst","Buyer GSTIN / UIN","21DSAPS9199M1ZY","text"],["buyerPin","Buyer PIN Code","767019","text"],["buyerState","Buyer State","Odisha","text"],["buyerStateCode","Buyer State Code","21","text"],["buyerContactPerson","Contact Person","","text"],["buyerContact","Contact","","text"],
-["shipName","Despatch To","KASTURI TRADERS","text"],["shipAddress","Despatch To Address","Plot No-750, Khata No-108, Gajabandh, Rampur Road, Rampur, Gajbandh, Subarnapur, Odisha","text"],["shipGst","Despatch To GSTIN","21DSAPS9199M1ZY","text"],["shipState","Despatch To State","Odisha","text"],["shipStateCode","Despatch To State Code","21","text"],["shipPin","Despatch To PIN Code","767019","text"],["remarks","Remarks / Quality / Weight","Quality: Eastern R B Refined Oil (15 KG Tin), Vehicle No.: OD31E9576, Bags: 170, Actual Weight: 170 Tin, Weight: 170 Tin, Rate: 2,133.33/Tin","text"]
+["buyerName","Buyer (Bill to)","","text"],["buyerAddress","Buyer Address","","text"],["buyerGst","Buyer GSTIN / UIN","","text"],["buyerPin","Buyer PIN Code","","text"],["buyerState","Buyer State","","text"],["buyerStateCode","Buyer State Code","","text"],["buyerContactPerson","Contact Person","","text"],["buyerContact","Contact","","text"],
+["shipName","Despatch To","","text"],["shipAddress","Despatch To Address","","text"],["shipGst","Despatch To GSTIN","","text"],["shipState","Despatch To State","","text"],["shipStateCode","Despatch To State Code","","text"],["shipPin","Despatch To PIN Code","","text"],["remarks","Remarks / Quality / Weight","","text"]
 ];
 let lineSeq=0;
 function render(){
@@ -44,7 +44,7 @@ function render(){
  '<div class="field" style="margin-top:12px"><label for="remarks">Remarks</label><textarea id="remarks" rows="2">'+esc(defs[36][2])+'</textarea></div>'+
  '<div class="bs-actions"><button type="button" class="primary" id="bsPrint">Preview / Print / Save as PDF</button><button type="button" class="secondary" id="bsSave">Save Draft</button><button type="button" class="secondary" id="bsClear">Clear Form</button></div></form>'+
  '<div class="panel"><h2>Saved drafts on this device</h2><div id="bsDrafts" class="bs-drafts"></div></div>';
- addLine({description:"Eastern R B Refined Oil (15 KG Tin)",bags:170,hsn:"15159040",qty:170,unit:"Tin",inclRate:2240,rate:2133.33,per:"Tin",gst:5});
+ addLine();
  $("bsAddLine").addEventListener("click",()=>addLine());
  $("bsForm").addEventListener("input",calc);
  $("bsForm").addEventListener("change",calc);
@@ -127,8 +127,8 @@ async function uploadPdf(e){
   const buyerLines=block("Buyer\\s*\\(Bill to\\)","Despatch To"),shipLines=block("Despatch To","Invoice No");
   if(buyerLines[0])set("buyerName",buyerLines[0]);if(buyerLines.length>1)set("buyerAddress",buyerLines.slice(1).join(", "));
   if(shipLines[0])set("shipName",shipLines[0]);if(shipLines.length>1)set("shipAddress",shipLines.slice(1).join(", "));
-  set("buyerPin",match(/PIN Code\s*:\s*(\d{6})/i));set("buyerState",match(/State Name\s*:\s*([A-Za-z ]+),\s*Code/i));set("buyerStateCode",match(/State Name\s*:\s*[A-Za-z ]+,\s*Code\s*:\s*(\d{1,2})/i));
-  set("dispatchFrom",match(/Despatch From\s*\(Place\)\s+([A-Za-z -]+)/i));set("destination",match(/Destination\s+([A-Za-z -]+)/i));set("vehicleNo",match(/Vehicle No\.\s*([A-Z0-9]+)/i));set("broker",match(/Broker Name\s+([A-Z][A-Z ]+)/i));set("termsDelivery",match(/Terms of Delivery\s+([A-Za-z-]+)/i));
+  const pins=[...raw.matchAll(/PIN Code\s*:?\s*(\d{6})/ig)].map(x=>x[1]);if(pins[0])set("buyerPin",pins[0]);if(pins[1])set("shipPin",pins[1]);set("buyerState",match(/State Name\s*:\s*([A-Za-z ]+),\s*Code/i));set("buyerStateCode",match(/State Name\s*:\s*[A-Za-z ]+,\s*Code\s*:\s*(\d{1,2})/i));
+  set("dispatchFrom",match(/Despatch From\s*\(Place\)\s+([A-Za-z -]+)/i));set("destination",match(/Destination\s+([A-Za-z -]+)/i));set("vehicleNo",match(/Vehicle No\.\s*([A-Z0-9]+)/i));set("remarks",match(/Remarks:\s*(.+?)\s+Amount Chargeable/i));set("broker",match(/Broker Name\s+([A-Z][A-Z ]+)/i));set("termsDelivery",match(/Terms of Delivery\s+([A-Za-z-]+)/i));
   set("bankAccount",match(/A\/c No\.\s*:\s*([0-9]+)/i));set("bankIfsc",match(/Branch & IFS Code\s*:\s*[^ ]+\s*&\s*([A-Z0-9]+)/i));
   const cg=match(/Output CGST\s+([\d,]+\.\d{2})/i),sg=match(/Output SGST\s+([\d,]+\.\d{2})/i);const taxable=match(/Tot\.Taxable Amt\s*:\s*([\d,]+\.\d{2})/i)||match(/Amount\s+([\d,]+\.\d{2})\s+Output CGST/i);
   const total=match(/Total Inv Amt\s*:\s*([\d,]+\.\d{2})/i)||match(/Total\s+\d+\s+\d+\s+[A-Za-z]+\s+₹?\s*([\d,]+\.\d{2})/i);
