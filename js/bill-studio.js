@@ -67,7 +67,7 @@ function totals(){
  return{ls,taxable,cg,sg,ig,other,round,total};
 }
 function calc(){
- if(!$("bsTotals"))return;const t=totals();[...$("bsLines").rows].forEach((r,i)=>{const l=t.ls[i];r.querySelector(".bs-amount").textContent=money(l?l.qty*l.rate:0)});
+ if(!$("bsTotals"))return;const t=totals();[...$("bsLines").rows].forEach(r=>{const q=num(r.querySelector(".bs-qty").value),rate=num(r.querySelector(".bs-rate").value);r.querySelector(".bs-amount").textContent=money(q*rate)});
  $("bsTotals").innerHTML='<div class="bs-total-row"><span>Taxable Value</span><strong>'+money(t.taxable)+'</strong></div>'+
  '<div class="bs-total-row"><span>Output CGST</span><strong>'+money(t.cg)+'</strong></div><div class="bs-total-row"><span>Output SGST</span><strong>'+money(t.sg)+'</strong></div>'+
  '<div class="bs-total-row"><span>Output IGST</span><strong>'+money(t.ig)+'</strong></div><div class="bs-total-row"><span>Other Amount</span><strong>'+money(t.other)+'</strong></div>'+
@@ -110,7 +110,7 @@ async function uploadPdf(e){
  try{
   pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   const bytes=new Uint8Array(await file.arrayBuffer()),pdf=await pdfjsLib.getDocument({data:bytes}).promise;let raw="";
-  for(let n=1;n<=Math.min(pdf.numPages,2);n++){const page=await pdf.getPage(n),content=await page.getTextContent();raw+=" "+content.items.map(x=>x.str).join(" ")}
+  let rawLines="";for(let n=1;n<=Math.min(pdf.numPages,2);n++){const page=await pdf.getPage(n),content=await page.getTextContent();let line="";for(const item of content.items){line+=(item.str||"")+" ";if(item.hasEOL){rawLines+=line.trim()+"\n";line=""}}if(line.trim())rawLines+=line.trim()+"\n";raw+=" "+content.items.map(x=>x.str).join(" ")}
   raw=raw.replace(/\s+/g," ").trim();if(raw.length<80){status("This looks like a scanned/image-only PDF. Automatic text extraction could not read it; please enter the details manually.");return}
   const match=(re)=>{const m=raw.match(re);return m?m[1].trim():""};
   const set=(id,v)=>{if(v)setVal(id,v)};
@@ -122,7 +122,11 @@ async function uploadPdf(e){
   set("ewayNo",match(/e-Way Bill No\.?\s*([0-9]{8,})/i));
   set("buyerName",match(/Buyer\s*\(Bill to\)\s+([A-Z][A-Z0-9 &.-]{2,})/i));
   set("buyerGst",match(/GSTIN\/UIN\s*:\s*([0-9A-Z]{15})/ig)?.[0]||"");
-  const gstMatches=[...raw.matchAll(/GSTIN\/UIN\s*:\s*([0-9A-Z]{15})/ig)].map(x=>x[1]);if(gstMatches[1])set("buyerGst",gstMatches[1]);
+  const gstMatches=[...raw.matchAll(/GSTIN\/UIN\s*:?\s*([0-9A-Z]{15})/ig)].map(x=>x[1]);if(gstMatches[1])set("buyerGst",gstMatches[1]);if(gstMatches[2])set("shipGst",gstMatches[2]);
+  const block=(start,end)=>{const re=new RegExp(start+"\\s*([\\s\\S]*?)\\s*"+end,"i"),m=rawLines.match(re);return m?m[1].split("\n").map(x=>x.trim()).filter(x=>x&&!/^(:|GSTIN|PIN Code|Contact person|Contact|State Name|E-Mail)/i.test(x)):[]};
+  const buyerLines=block("Buyer\\s*\\(Bill to\\)","Despatch To"),shipLines=block("Despatch To","Invoice No");
+  if(buyerLines[0])set("buyerName",buyerLines[0]);if(buyerLines.length>1)set("buyerAddress",buyerLines.slice(1).join(", "));
+  if(shipLines[0])set("shipName",shipLines[0]);if(shipLines.length>1)set("shipAddress",shipLines.slice(1).join(", "));
   set("buyerPin",match(/PIN Code\s*:\s*(\d{6})/i));set("buyerState",match(/State Name\s*:\s*([A-Za-z ]+),\s*Code/i));set("buyerStateCode",match(/State Name\s*:\s*[A-Za-z ]+,\s*Code\s*:\s*(\d{1,2})/i));
   set("dispatchFrom",match(/Despatch From\s*\(Place\)\s+([A-Za-z -]+)/i));set("destination",match(/Destination\s+([A-Za-z -]+)/i));set("vehicleNo",match(/Vehicle No\.\s*([A-Z0-9]+)/i));set("broker",match(/Broker Name\s+([A-Z][A-Z ]+)/i));set("termsDelivery",match(/Terms of Delivery\s+([A-Za-z-]+)/i));
   set("bankAccount",match(/A\/c No\.\s*:\s*([0-9]+)/i));set("bankIfsc",match(/Branch & IFS Code\s*:\s*[^ ]+\s*&\s*([A-Z0-9]+)/i));
@@ -131,7 +135,7 @@ async function uploadPdf(e){
   const round=match(/RoundOff\s+\(?(-?[\d,]+\.\d{2})\)?/i);if(cg&&sg){set("taxMode","intra");set("gstRate","5")}
   if(round)set("roundOff",round.replace(/,/g,""));
   const hsn=match(/(\d{8})\s+\d+\s+(?:Tin|PCS|QTL|KG|MT)/i);
-  if(hsn){const idx=raw.indexOf(hsn),before=raw.slice(Math.max(0,idx-90),idx),desc=(before.match(/([A-Za-z][A-Za-z0-9 ()/&.-]{4,70})\s+\d+\s*$/)||[])[1]||"";
+  if(hsn){const idx=raw.indexOf(hsn),before=raw.slice(Math.max(0,idx-90),idx),descLine=(rawLines.match(/(?:^|\n)\s*1\s+([^\n]+)/)||[])[1]||"",desc=(descLine.replace(/\s+[\d,]+\.\d{2}.*$/,"").trim()||(before.match(/([A-Za-z][A-Za-z0-9 ()/&.-]{4,70})\s+\d+\s*$/)||[])[1]||"");
     const tail=raw.slice(idx),q=tail.match(/^\d{8}\s+(\d+)\s+(Tin|PCS|QTL|KG|MT)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+(Tin|PCS|QTL|KG|MT)\s+([\d,]+\.\d{2})/i);
     if(q){$("bsLines").innerHTML="";lineSeq=0;addLine({description:desc||"Imported item",bags:Number(q[1]),hsn,qty:Number(q[1]),unit:q[2],inclRate:num(q[3].replace(/,/g,"")),rate:num(q[4].replace(/,/g,"")),per:q[5],gst:5})}
   }
