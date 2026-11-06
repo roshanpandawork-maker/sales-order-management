@@ -138,7 +138,7 @@ async function uploadPdf(e){
   const total=match(/Total Inv Amt\s*:\s*([\d,]+\.\d{2})/i)||match(/Total\s+₹?\s*([\d,]+\.\d{2})/i);
   const roundLine=rawLines.match(/RoundOff\s+\(-\)\s*([\d,]+\.\d{2})/i),round=roundLine?"-"+roundLine[1]:match(/RoundOff\s+\(?(-?[\d,]+\.\d{2})\)?/i);if(cg&&sg){set("taxMode","intra");set("gstRate","5")}
   if(round)set("roundOff",round.replace(/,/g,""));
-  const hsn=match(/\b(\d{8})\b),qtyMatch=rawLines.match(/^\s*(\d+(?:\.\d+)?)\s+(Tin|PCS|QTL|KG|MT)\s*$/im),descLine=(rawLines.match(/(?:^|\n)\s*1\s+([^\n]+)/)||[])[1]||"";
+  const hsn=match(/\b(\d{8})\b/),qtyMatch=rawLines.match(/^\s*(\d+(?:\.\d+)?)\s+(Tin|PCS|QTL|KG|MT)\s*$/im),descLine=(rawLines.match(/(?:^|\n)\s*1\s+([^\n]+)/)||[])[1]||"";
   if(hsn&&qtyMatch){const desc=descLine.replace(/\s+[\d,]+\.\d{2}.*$/,"").trim()||"Imported item",qty=num(qtyMatch[1]),unit=qtyMatch[2],amounts=decimals.map(x=>num(x.replace(/,/g,"")));$("bsLines").innerHTML="";lineSeq=0;addLine({description:desc,bags:qty,hsn,qty,unit,inclRate:amounts[2]||0,rate:amounts[1]||0,per:unit,gst:5})}
   if(total&&taxable&&$("bsLines").rows.length){const calculated=totals().total,expected=num(total.replace(/,/g,""));if(Math.abs(calculated-expected)>.02)$("roundOff").value=(num($("roundOff").value)+(expected-calculated)).toFixed(2)}
   calc();status("Text extracted from "+pdf.numPages+" page(s). Please verify all values and edit anything incorrect before printing.");
