@@ -1,0 +1,26 @@
+/* Bill Studio — editable GST tax invoice matching the supplied SalesDesk reference. */
+.billstudio-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.billstudio-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.bs-upload{border:1.5px dashed #9db2ca;border-radius:13px;background:#f7faff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.bs-upload strong{display:block;color:#203750;margin-bottom:4px}
+.bs-upload small{color:#6b7d91}
+.bs-status{font-size:12px;color:#315fe9;min-height:18px;margin-top:8px}
+.bs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.bs-grid .field{min-width:0}
+.bs-block-title{font-size:13px;font-weight:800;color:#243a54;margin:18px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.bs-lines table{min-width:1100px}
+.bs-lines input{min-width:72px}
+.bs-lines .bs-desc{min-width:220px}
+.bs-totals{display:grid;grid-template-columns:1fr minmax(260px,390px);gap:18px;margin-top:14px}
+.bs-total-list{border:1px solid var(--line);border-radius:11px;padding:12px 14px;background:#fbfcfe}
+.bs-total-row{display:flex;justify-content:space-between;gap:14px;padding:5px 0;font-size:12px}
+.bs-total-row strong{font-variant-numeric:tabular-nums}
+.bs-total-row.grand{border-top:1px solid #cbd5e1;margin-top:6px;padding-top:11px;font-size:16px;font-weight:800}
+.bs-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.bs-drafts{display:grid;gap:8px}
+.bs-draft{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}
+.bs-draft small{display:block;color:var(--muted)}
+.bs-help{font-size:11px;color:var(--muted);line-height:1.5}
+.bs-remove{padding:6px 9px}
+@media(max-width:900px){.bs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bs-totals{grid-template-columns:1fr}}
+@media(max-width:540px){.bs-grid{grid-template-columns:1fr}.bs-upload{align-items:stretch}.bs-upload .secondary{width:100%}.bs-draft{align-items:flex-start;flex-direction:column}}
